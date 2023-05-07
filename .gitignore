@@ -1,0 +1,8 @@
+/.envrc
+
+/util/*.key
+/util/*.csr
+/util/*.crt
+/util/*.pem
+/util/*.p7
+/util/*.req
