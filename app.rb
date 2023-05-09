@@ -30,11 +30,28 @@ class App < Sinatra::Base
   end
 
   get '/MDMServiceConfig' do
-    content_type 'application/json'
-    rb :'MDMServiceConfig.json'
+    verbose_print_request
+    halt 404, 'Not supported.'
+  end
+
+  get '/mdm/appleconfigurator' do # AppleConfigurator: add server
+    verbose_print_request
+    'OK'
+  end
+
+  post '/mdm/appleconfigurator' do # AppleConfigurator: iOS provisioning: Remote Management
+    verbose_print_request
+    content_type 'application/x-apple-aspen-config'
+    rb :'mdm.mobileconfig'
   end
 
   get '/mdm.mobileconfig' do
+    content_type 'application/x-apple-aspen-config'
+    rb :'mdm.mobileconfig'
+  end
+
+  post '/mdm.mobileconfig' do
+    verbose_print_request
     content_type 'application/x-apple-aspen-config'
     rb :'mdm.mobileconfig'
   end
