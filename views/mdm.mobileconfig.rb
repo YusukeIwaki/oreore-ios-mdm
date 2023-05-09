@@ -1,4 +1,4 @@
-server_key = OpenSSL::PKey::RSA.new(File.read('util/server.key'))
+server_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV['SERVER_PRIVATE_KEY_BASE64']))
 
 # create device certificate
 device_key = OpenSSL::PKey::RSA.generate(2048)

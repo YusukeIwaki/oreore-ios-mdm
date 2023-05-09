@@ -18,3 +18,4 @@ Following environment variables should be configured before launching MDM server
 - MDM_SERVER_BASE_URL
 - PUSH_CERTIFICATE_PASSWORD
 - PUSH_CERTIFICATE_BASE64
+- SERVER_PRIVATE_KEY_BASE64

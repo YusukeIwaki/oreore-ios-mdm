@@ -17,4 +17,8 @@ end
 push_key = OpenSSL::PKey::RSA.new(File.read('util/push.key'))
 push_certificate = OpenSSL::X509::Certificate.new(File.read(filepath))
 p12 = OpenSSL::PKCS12.create(ENV['PUSH_CERTIFICATE_PASSWORD'], 'oreore-mdm-push', push_key, push_certificate)
-puts "set an environment variable: PUSH_CERTIFICATE_BASE64=#{Base64.strict_encode64(p12.to_der)}"
+server_key = OpenSSL::PKey::RSA.new(File.read('util/server.key'))
+
+puts "set an environment variable:"
+puts "  PUSH_CERTIFICATE_BASE64=#{Base64.strict_encode64(p12.to_der)}"
+puts "  SERVER_PRIVATE_KEY_BASE64=#{Base64.strict_encode64(server_key.to_pem)}"
