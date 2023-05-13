@@ -17,7 +17,8 @@ class PushClient
   end
 
   # @return [Response]
-  def send_mdm_notification(push_destination)
+  def send_mdm_notification(push_destination, commands: [])
+    commands.each { |command| CommandQueue.new(push_destination.udid) << command }
     notification = Apnotic::MdmNotification.new(token: push_destination.token, push_magic: push_destination.push_magic)
     @apnotic_connection.push(notification)
   end

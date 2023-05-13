@@ -19,3 +19,47 @@ Following environment variables should be configured before launching MDM server
 - PUSH_CERTIFICATE_PASSWORD
 - PUSH_CERTIFICATE_BASE64
 - SERVER_PRIVATE_KEY_BASE64
+
+## Launch server
+
+Just hit `bundle exec rackup -p 3000`
+
+## Checkin
+
+Install MDM configuration profile into your device.
+
+- `<your domain>` can be local, `https` is required, self-signed SSL cert can be accepted.
+- `ngrok http 3000` is also useful for testing.
+
+### via Apple Configurator
+
+Server: oreore-mdm
+URL: `https://<your domain>/mdm/appleconfigurator`
+
+### via OTA (Safari)
+
+Visit `https://<your domain>/mdm.mobileconfig`
+
+## Send commands
+
+```
+$ bin/console
+```
+
+```
+Data.define(:udid, :token, :push_magic)
+client = PushClient.new
+
+destination = Destination.new(
+  udid: '00008027-xxxxxxxxxxxxxxxxx',
+  token: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  push_magic: '60B72D2F-4BF5-xxxx-xxxx-xxxxxxxxxxxxxxxx',
+)
+client.send_mdm_notification(
+  destination,
+  commands: [
+    Command::DeviceInformation.new,
+    Command::InstalledApplicationList.new,
+  ],
+)
+```

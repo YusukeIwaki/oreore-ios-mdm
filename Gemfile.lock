@@ -32,6 +32,9 @@ GEM
     rack (2.2.7)
     rack-protection (3.0.6)
       rack
+    redis (4.8.1)
+    redis-queue (0.1.0)
+      redis (>= 3.3.5, < 5)
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -66,6 +69,7 @@ DEPENDENCIES
   pry-byebug
   puma
   rack
+  redis-queue
   rspec
   sinatra
   zeitwerk

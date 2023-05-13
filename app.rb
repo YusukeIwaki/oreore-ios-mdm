@@ -84,5 +84,22 @@ class App < Sinatra::Base
 
   put '/mdm/command' do
     verbose_print_request
+
+    plist = Plist.parse_xml(request.body.read, marshal: false)
+    udid = plist['UDID']
+    status = plist['Status']
+
+    if !udid || !status
+      halt 400, 'Bad request'
+    end
+
+    command = CommandQueue.new(udid).first
+    logger.info("command: #{command || 'nil'}")
+    if command
+      content_type 'application/xml'
+      body command
+    else
+      204
+    end
   end
 end
