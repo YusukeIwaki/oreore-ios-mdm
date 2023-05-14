@@ -1,12 +1,19 @@
 version: '3'
 services:
-  redis:
-    image: redis:alpine
-    ports:
-      - 6379:6379
+  mongodb:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: oreoremdm
     volumes:
-      - redis-data:/data
+      - mongodb-data:/data/db
+      - mongodb-config:/data/configdb
+    ports:
+      - 27017:27017
 
 volumes:
-  redis-data:
+  mongodb-data:
+    driver: local
+  mongodb-config:
     driver: local
