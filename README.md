@@ -1,5 +1,9 @@
 # oreore-ios-mdm
 
+## Prepare MDM push certificate
+
+At first, `bundle exec ruby util/create_server_certificates.rb` generates server keys and certificates, and push certificate sign request.
+
 Set environment variables below:
 
 - MDMCERT_DOWNLOAD_API_KEY
@@ -8,6 +12,8 @@ Set environment variables below:
 then execute `bundle exec ruby util/mdmcert_download_request.rb` for requesting signing.
 
 After receiving an email with an attachment named **.b64.p7, execute `bundle exec ruby util/mdmcert_download_decrypt.rb <path to **.b64.p7>`.
+
+(or if you happen to have MDM vendor certificate p12 file, `MDM_VENDOR_CERT_P12_PATH=<path to **.p12> MDM_VENDOR_CERT_P12_PASSWORD=<passphrase> bundle exec ruby util/mdm_vendor_sign.rb` will create `util/push_signed.req` using the specified MDM vendor certificate.)
 
 Upload util/push_signed.req to https://identity.apple.com/pushcert/ and download push certificate.
 
