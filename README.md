@@ -53,16 +53,11 @@ $ bin/console
 ```
 
 ```
-Data.define(:udid, :token, :push_magic)
-client = PushClient.new
+push_client = PushClient.new
 
-destination = Destination.new(
-  udid: '00008027-xxxxxxxxxxxxxxxxx',
-  token: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  push_magic: '60B72D2F-4BF5-xxxx-xxxx-xxxxxxxxxxxxxxxx',
-)
-client.send_mdm_notification(
-  destination,
+mdm_push_token = MdmPushToken.last
+push_client.send_mdm_notification(
+  mdm_push_token,
   commands: [
     Command::DeviceInformation.new,
     Command::InstalledApplicationList.new,

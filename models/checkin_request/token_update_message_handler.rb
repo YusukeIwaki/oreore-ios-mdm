@@ -27,15 +27,11 @@ module CheckinRequest
     end
 
     def handle
-      puts <<~RUBY
-      Destination = Data.define(:udid, :token, :push_magic)
-      destination = Destination.new(
-        udid: '#{udid}',
-        token: '#{token}',
-        push_magic: '#{push_magic}',
+      MdmPushToken.find_or_initialize_by(udid: udid).update!(
+        token: token,
+        push_magic: push_magic,
+        unlock_token: unlock_token,
       )
-      PushClient.new.send_mdm_notification(destination, commands: [Command::DeviceInformation.new])
-      RUBY
 
       nil
     end

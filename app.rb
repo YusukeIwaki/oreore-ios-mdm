@@ -1,6 +1,14 @@
 require 'bundler'
 Bundler.require :default, (ENV['RACK_ENV'] || :development).to_sym
 
+Mongoid.configure do |config|
+  config.clients.default = {
+    uri: ENV['MONGODB_URL'],
+  }
+
+  config.log_level = :info
+end
+
 loader = Zeitwerk::Loader.new
 loader.push_dir('./lib')
 loader.push_dir('./models')
@@ -93,11 +101,45 @@ class App < Sinatra::Base
       halt 400, 'Bad request'
     end
 
-    command = CommandQueue.new(udid).first
+    command_queue = CommandQueue.new(udid)
+    command_uuid = plist['CommandUUID']
+    begin
+      case status
+      when 'Idle'
+        # nothing to do
+      when 'NotNow'
+        command_queue.find_handling_request(command_uuid: command_uuid).reschedule
+      when 'Acknowledged', 'Error'
+        request = command_queue.find_handling_request(command_uuid: command_uuid)
+        # mark as completed.
+        request.destroy!
+
+        # Additional response handling here.
+        if (request_type = request.request_payload.dig('Command', 'RequestType'))
+          if (handler_klass = CommandResponseHandler.const_get("#{request_type}#{status}") rescue nil)
+            if status == 'Error'
+              handler_klass.new(udid, plist['ErrorChain']).handle
+            else
+              response_payload = plist.reject do |key, value|
+                %w[Status UDID CommandUUID ErrorChain].include?(key)
+              end
+              handler_klass.new(udid, response_payload).handle
+            end
+          end
+        end
+      when 'CommandFormatError'
+        command_queue.find_handling_request(command_uuid: command_uuid)&.destroy!
+        logger.warn("CommandFormatError: #{plist}")
+      end
+    rescue Mongoid::Errors::DocumentNotFound
+      logger.warn("CommandUUID not in DB: #{plist}")
+    end
+
+    command = command_queue.dequeue
     logger.info("command: #{command || 'nil'}")
     if command
       content_type 'application/xml'
-      body command
+      body command.to_plist
     else
       204
     end

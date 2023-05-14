@@ -1,11 +1,20 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    activemodel (7.0.4.3)
+      activesupport (= 7.0.4.3)
+    activesupport (7.0.4.3)
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      i18n (>= 1.6, < 2)
+      minitest (>= 5.1)
+      tzinfo (~> 2.0)
     apnotic (1.7.1)
       connection_pool (~> 2)
       net-http2 (>= 0.18.3, < 2)
+    bson (4.15.0)
     byebug (11.1.3)
     coderay (1.1.3)
+    concurrent-ruby (1.2.2)
     connection_pool (2.4.0)
     data_class_factory (1.0.0)
     diff-lcs (1.5.0)
@@ -14,7 +23,16 @@ GEM
       ruby2_keywords (>= 0.0.4)
     faraday-net_http (3.0.2)
     http-2 (0.11.0)
+    i18n (1.13.0)
+      concurrent-ruby (~> 1.0)
     method_source (1.0.0)
+    minitest (5.18.0)
+    mongo (2.18.2)
+      bson (>= 4.14.1, < 5.0.0)
+    mongoid (8.0.3)
+      activemodel (>= 5.1, < 7.1, != 7.0.0)
+      mongo (>= 2.18.0, < 3.0.0)
+      ruby2_keywords (~> 0.0.5)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
     net-http2 (0.18.5)
@@ -32,9 +50,6 @@ GEM
     rack (2.2.7)
     rack-protection (3.0.6)
       rack
-    redis (4.8.1)
-    redis-queue (0.1.0)
-      redis (>= 3.3.5, < 5)
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -55,21 +70,24 @@ GEM
       rack-protection (= 3.0.6)
       tilt (~> 2.0)
     tilt (2.1.0)
+    tzinfo (2.0.6)
+      concurrent-ruby (~> 1.0)
     zeitwerk (2.6.8)
 
 PLATFORMS
   x86_64-darwin-21
   x86_64-darwin-22
+  x86_64-linux-musl
 
 DEPENDENCIES
   apnotic
   data_class_factory
   faraday
+  mongoid
   plist
   pry-byebug
   puma
   rack
-  redis-queue
   rspec
   sinatra
   zeitwerk

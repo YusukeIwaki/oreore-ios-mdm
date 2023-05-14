@@ -1,12 +1,38 @@
 version: '3'
 services:
-  redis:
-    image: redis:alpine
-    ports:
-      - 6379:6379
+  web:
+    build: .
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URL=mongodb://root:oreoremdm@mongodb:27017
+      - MDM_SERVER_BASE_URL
+      - PUSH_CERTIFICATE_PASSWORD
+      - PUSH_CERTIFICATE_BASE64
+      - SERVER_PRIVATE_KEY_BASE64
     volumes:
-      - redis-data:/data
+      - .:/app
+      - bundle-data:/usr/local/bundle
+    ports:
+      - 3000:3000
+    command: bundle exec rackup --host 0.0.0.0 --port 3000
+
+  mongodb:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: oreoremdm
+    volumes:
+      - mongodb-data:/data/db
+      - mongodb-config:/data/configdb
+    ports:
+      - 27017:27017
 
 volumes:
-  redis-data:
+  bundle-data:
+    driver: local
+  mongodb-data:
+    driver: local
+  mongodb-config:
     driver: local
