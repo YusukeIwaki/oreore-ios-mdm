@@ -2,6 +2,8 @@
 
 source "https://rubygems.org"
 
+ruby '~> 3.0.2'
+
 gem 'apnotic'
 gem 'data_class_factory'
 gem 'faraday'
