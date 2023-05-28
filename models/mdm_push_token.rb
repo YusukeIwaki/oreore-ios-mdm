@@ -5,4 +5,9 @@ class MdmPushToken
   field :token, type: String
   field :push_magic, type: String
   field :unlock_token, type: String
+
+  index(
+    { udid: 1 },
+    { unique: true },
+  )
 end
