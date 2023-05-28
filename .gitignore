@@ -6,5 +6,6 @@
 /util/*.pem
 /util/*.p7
 /util/*.req
+/util/*.p12
 
 /.DS_Store
