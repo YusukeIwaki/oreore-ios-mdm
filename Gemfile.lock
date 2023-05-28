@@ -86,6 +86,7 @@ DEPENDENCIES
   faraday
   mongoid
   plist
+  pry
   pry-byebug
   puma
   rack

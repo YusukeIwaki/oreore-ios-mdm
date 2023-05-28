@@ -10,6 +10,7 @@ gem 'puma'
 gem 'rack'
 gem 'sinatra', require: false
 gem 'plist'
+gem 'pry'
 gem 'zeitwerk'
 
 group :development, :test do
