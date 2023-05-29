@@ -132,6 +132,8 @@ class App < Sinatra::Base
         logger.warn("CommandFormatError: #{plist}")
       end
     rescue Mongoid::Errors::DocumentNotFound
+      # iOS sometimes retry MDM response.
+      # Just ignore if CommandUUID is already handled and not in DB.
       logger.warn("CommandUUID not in DB: #{plist}")
     end
 
