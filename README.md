@@ -42,6 +42,7 @@ $ bin/console
 MdmPushToken.create_indexes
 MdmCommandRequest.create_indexes
 MdmCommandHandlingRequest.create_indexes
+LatestDeviceInformation.create_indexes
 ```
 
 ## Launch server
