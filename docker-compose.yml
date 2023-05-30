@@ -3,9 +3,9 @@ services:
   web:
     build: .
     depends_on:
-      - mongodb
+      - postgres
     environment:
-      - MONGODB_URL=mongodb://root:oreoremdm@mongodb:27017
+      - DATABASE_URL=postgres://pguser:pgpassword@postgres:5432/pguser
       - MDM_SERVER_BASE_URL
       - PUSH_CERTIFICATE_PASSWORD
       - PUSH_CERTIFICATE_BASE64
@@ -18,22 +18,18 @@ services:
       - 3000:3000
     command: bundle exec rackup --host 0.0.0.0 --port 3000
 
-  mongodb:
-    image: mongo
+  postgres:
+    image: postgres:15-alpine
     restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: oreoremdm
     volumes:
-      - mongodb-data:/data/db
-      - mongodb-config:/data/configdb
-    ports:
-      - 27017:27017
+      - pg-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: pguser
+      POSTGRES_PASSWORD: pgpassword
+      POSTGRES_DB: pguser
 
 volumes:
   bundle-data:
     driver: local
-  mongodb-data:
-    driver: local
-  mongodb-config:
+  pg-data:
     driver: local

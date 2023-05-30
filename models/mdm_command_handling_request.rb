@@ -1,13 +1,13 @@
-class MdmCommandHandlingRequest
-  include Mongoid::Document
-
-  field :device_identifier, type: String
-  field :request_payload, type: Hash
-
-  index({ device_identifier: 1, 'request_payload.CommandUUID' => 1 })
+class MdmCommandHandlingRequest < ActiveRecord::Base
+  attribute :request_payload, :json
 
   def reschedule
-    MdmCommandRequest.create!(attributes)
-    destroy!
+    transaction do
+      MdmCommandRequest.create!(
+        device_identifier: device_identifier,
+        request_payload: request_payload,
+      )
+      destroy!
+    end
   end
 end

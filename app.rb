@@ -1,13 +1,13 @@
 require 'bundler'
 Bundler.require :default, (ENV['RACK_ENV'] || :development).to_sym
 
-Mongoid.configure do |config|
-  config.clients.default = {
-    uri: ENV['MONGODB_URL'],
-  }
+ActiveRecord::Base.logger = Logger.new($stdout)
+ActiveRecord.verbose_query_logs = true
 
-  config.log_level = :info
-end
+require 'active_support/core_ext'
+Time.zone_default = Time.find_zone!("Asia/Tokyo")
+ActiveRecord::Base.time_zone_aware_attributes = true
+ActiveRecord.default_timezone = :local
 
 loader = Zeitwerk::Loader.new
 loader.push_dir('./lib')
@@ -131,7 +131,7 @@ class App < Sinatra::Base
         command_queue.find_handling_request(command_uuid: command_uuid)&.destroy!
         logger.warn("CommandFormatError: #{plist}")
       end
-    rescue Mongoid::Errors::DocumentNotFound
+    rescue ActiveRecord::RecordNotFound
       # iOS sometimes retry MDM response.
       # Just ignore if CommandUUID is already handled and not in DB.
       logger.warn("CommandUUID not in DB: #{plist}")

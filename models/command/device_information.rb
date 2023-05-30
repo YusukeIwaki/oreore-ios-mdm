@@ -1,9 +1,13 @@
 module Command
-  class DeviceInformation < Base
+  class DeviceInformation
+    def initialize
+      @command_uuid = SecureRandom.uuid
+    end
+
     # https://github.com/apple/device-management/blob/release/mdm/commands/information.device.yaml
     def request_payload
       {
-        CommandUUID: command_uuid,
+        CommandUUID: @command_uuid,
         Command: {
           RequestType: 'DeviceInformation',
           Queries:[

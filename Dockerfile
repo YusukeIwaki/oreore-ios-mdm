@@ -3,6 +3,7 @@ FROM ruby:3.0-alpine3.16
 # Install dependencies
 RUN apk add --update --no-cache \
     build-base \
+    postgresql-dev \
     tzdata
 
 RUN mkdir /app

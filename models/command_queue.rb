@@ -12,7 +12,7 @@ class CommandQueue
 
   def self.bulk_insert(device_identifiers, commands)
     request_payloads = commands.map(&:request_payload)
-    MdmCommandRequest.collection.insert_many(
+    MdmCommandRequest.insert_all!(
       device_identifiers.product(request_payloads).map do |device_identifier, request_payload|
         {
           device_identifier: device_identifier,
@@ -23,7 +23,7 @@ class CommandQueue
   end
 
   def dequeue
-    mdm_command_request = MdmCommandRequest.where(device_identifier: @device_identifier).first
+    mdm_command_request = MdmCommandRequest.find_by(device_identifier: @device_identifier)
     return nil unless mdm_command_request
 
     mdm_command_request.start_handling
@@ -33,7 +33,7 @@ class CommandQueue
   def find_handling_request(command_uuid:)
     MdmCommandHandlingRequest.find_by!(
       device_identifier: @device_identifier,
-      'request_payload.CommandUUID': command_uuid,
+      command_uuid: command_uuid,
     )
   end
 
@@ -42,7 +42,9 @@ class CommandQueue
   end
 
   def clear
-    MdmCommandRequest.where(device_identifier: @device_identifier).destroy_all
-    MdmCommandHandlingRequest.where(device_identifier: @device_identifier).destroy_all
+    MdmCommandRequest.transaction do
+      MdmCommandRequest.where(device_identifier: @device_identifier).destroy_all
+      MdmCommandHandlingRequest.where(device_identifier: @device_identifier).destroy_all
+    end
   end
 end

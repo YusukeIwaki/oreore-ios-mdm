@@ -1,13 +1,14 @@
-class MdmCommandRequest
-  include Mongoid::Document
-
-  field :device_identifier, type: String
-  field :request_payload, type: Hash
-
-  index({ device_identifier: 1 })
+class MdmCommandRequest < ActiveRecord::Base
+  attribute :request_payload, :json
 
   def start_handling
-    MdmCommandHandlingRequest.create!(attributes)
-    destroy!
+    transaction do
+      MdmCommandHandlingRequest.create!(
+        device_identifier: device_identifier,
+        command_uuid: request_payload['CommandUUID'],
+        request_payload: request_payload,
+      )
+      destroy!
+    end
   end
 end

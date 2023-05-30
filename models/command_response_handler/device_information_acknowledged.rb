@@ -7,7 +7,7 @@ module CommandResponseHandler
 
     def handle
       latest_device_information = LatestDeviceInformation.find_or_initialize_by(udid: @udid)
-      latest_device_information.update!(@response_payload['QueryResponses'])
+      latest_device_information.update!(data: @response_payload['QueryResponses'])
     end
   end
 end
