@@ -1,6 +1,5 @@
 <%
   @mdm_push_token = MdmPushToken.find_by!(udid: params[:udid])
-  @device_info = LatestDeviceInformation.find_by(udid: @mdm_push_token.udid)
 
   @command_requests = MdmCommandRequest.where(device_identifier: @mdm_push_token.udid)
   @command_handling_requests = MdmCommandHandlingRequest.where(device_identifier: @mdm_push_token.udid)
@@ -9,12 +8,6 @@
 
 <div class="container">
   <h1>Device - <%= @mdm_push_token.udid %></h1>
-  <h2>Info</h2>
-  <% if @device_info %>
-  <pre><%= JSON.pretty_generate(@device_info.data) %></pre>
-  <% else %>
-  No data
-  <% end %>
 
   <h2>Commands</h2>
   <form action="/devices/<%= @mdm_push_token.udid %>/commands" class="card p-2" method="post">
