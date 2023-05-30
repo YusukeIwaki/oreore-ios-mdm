@@ -15,6 +15,9 @@ module CheckinRequest
     end
 
     def handle
+      MdmPushToken.find_by(udid: udid)&.destroy!
+      CommandQueue.new(udid).clear
+      MdmCommandHistory.where(device_identifier: udid).destroy_all
     end
 
     private
