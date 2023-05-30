@@ -143,7 +143,7 @@ class App < Sinatra::Base
       content_type 'application/xml'
       body command.to_plist
     else
-      204
+      200
     end
   end
 end
