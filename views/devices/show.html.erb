@@ -1,0 +1,115 @@
+<%
+  @mdm_push_token = MdmPushToken.find_by!(udid: params[:udid])
+  @device_info = LatestDeviceInformation.find_by(udid: @mdm_push_token.udid)
+
+  @command_requests = MdmCommandRequest.where(device_identifier: @mdm_push_token.udid)
+  @command_handling_requests = MdmCommandHandlingRequest.where(device_identifier: @mdm_push_token.udid)
+  @command_histories = MdmCommandHistory.where(device_identifier: @mdm_push_token.udid).select(:command_uuid, :request_type, :created_at)
+%>
+
+<div class="container">
+  <h1>Device - <%= @mdm_push_token.udid %></h1>
+  <h2>Info</h2>
+  <% if @device_info %>
+  <pre><%= JSON.pretty_generate(@device_info.data) %></pre>
+  <% else %>
+  No data
+  <% end %>
+
+  <h2>Commands</h2>
+  <form action="/devices/<%= @mdm_push_token.udid %>/commands" class="card p-2" method="post">
+    <select class="form-select form-select-sm mb-3" id="select_template">
+      <option value=''>Custom</option>
+      <option value="DeviceInformation">DeviceInformation</option>
+      <option value="InstalledApplicationList">InstalledApplicationList</option>
+    </select>
+    <div class="mb-3">
+      <label for="input_payload" class="form-label">Payload</label>
+      <textarea class="form-control" id="input_payload" name="payload" rows="10"></textarea>
+    </div>
+    <button type="submit" class="btn btn-outline-primary">Enqueue command</button>
+  </form>
+
+  <h2>Command Queue</h2>
+  <form action="/devices/<%= @mdm_push_token.udid %>/push" method="post">
+    <button type="submit" class="btn btn-outline-primary">Request fetching commands</button>
+  </form>
+
+  <% if @command_requests.present? %>
+  <ul class="list-group">
+    <% @command_requests.each do |command_request| %>
+    <li class="list-group-item">
+    <%= JSON.pretty_generate(command_request.request_payload) %>
+    <%= command_request.created_at %>
+    </li>
+    <% end %>
+  </ul>
+  <% else %>
+  No commands.
+  <% end %>
+
+  <h3>Handling</h3>
+  <% if @command_handling_requests.present? %>
+  <ul class="list-group">
+    <% @command_handling_requests.each do |command_handling_request| %>
+    <li class="list-group-item">
+    <%= JSON.pretty_generate(command_handling_request.request_payload) %>
+    <%= command_handling_request.created_at %>
+    </li>
+    <% end %>
+  </ul>
+  <% else %>
+  No commands.
+  <% end %>
+
+  <script type="text/javascript">
+  function request(method, url, form) {
+    return new Promise(function(resolve, reject) {
+      let req = new XMLHttpRequest();
+      req.open(method, url);
+
+      req.onload = function() {
+        if (req.status == 200) {
+          resolve(req.response);
+        }
+        else {
+          reject(Error(req.statusText));
+        }
+      };
+
+      req.onerror = () => {
+        reject(Error("ERROR"));
+      };
+
+      req.send(form);
+    });
+  }
+
+  let selectTemplate = document.getElementById('select_template')
+  selectTemplate.addEventListener('change', (event) => {
+    let payload = document.getElementById('input_payload')
+    let selected = event.target.value
+    if (!!selected) {
+      let form = new FormData()
+      form.append('class', selected)
+      request('POST', '/commands/template.txt', form).then((response) => {
+        payload.innerHTML = response.trim()
+      })
+    }
+  })
+  </script>
+
+  <h2>Command History</h2>
+  <% if @command_histories.present? %>
+  <div class="list-group">
+  <% @command_histories.each do |command_history| %>
+    <a href="/devices/<%= @mdm_push_token.udid %>/commands/<%= command_history.command_uuid %>" class="list-group-item list-group-item-action">
+    <%= command_history.request_type %> - <%= command_history.command_uuid %> (<%= command_history.created_at %>)
+    </a>
+  <% end %>
+  </div>
+  <% else %>
+  no histories
+  <% end %>
+
+</div>

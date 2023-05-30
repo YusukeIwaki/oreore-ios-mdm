@@ -1,0 +1,35 @@
+<%
+  @mdm_push_tokens = MdmPushToken.all
+  @latest_device_infos_by_udid = LatestDeviceInformation.
+    where(udid: @mdm_push_tokens.pluck(:udid)).
+    index_by(&:udid)
+
+  @qr_url = URI('https://chart.googleapis.com/chart').tap do |uri|
+    uri.query = URI.encode_www_form({
+      cht: 'qr',
+      chs: '240x240',
+      chl: "#{ENV['MDM_SERVER_BASE_URL']}/mdm.mobileconfig",
+    })
+  end
+%>
+
+<div class="container">
+  <h1>Devices</h1>
+  <% if @mdm_push_tokens.present? %>
+  <div class="list-group">
+  <% @mdm_push_tokens.each do |mdm_push_token| %>
+    <a href="/devices/<%= mdm_push_token.udid %>" class="list-group-item list-group-item-action">
+    <% if (device_info = @latest_device_infos_by_udid[mdm_push_token.udid]) %>
+    <%= JSON.pretty_generate(device_info.data) %>
+    <% else %>
+    <%= mdm_push_token.udid %>
+    <% end %>
+    </a>
+  <% end %>
+  </div>
+  <% else %>
+  no devices
+  <% end %>
+
+  <img src="<%= @qr_url %>" />
+</div>

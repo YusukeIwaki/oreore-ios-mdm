@@ -1,0 +1,19 @@
+<%
+  @command_history = MdmCommandHistory.find_by!(device_identifier: params[:udid], command_uuid: params[:command_uuid])
+%>
+
+<div class="container">
+  <h1>Device - <%= params[:uuid] %></h1>
+  <h2>Command - <%= params[:command_uuid] %></h2>
+
+  <h3>Request</h3>
+  <div class="card p-2 mb-4">
+  <pre><%= ERB::Util.h(@command_history.request_payload) %></pre>
+  </div>
+
+  <h3>Response</h3>
+  <div class="card p-2 mb-4">
+  <pre><%= ERB::Util.h(@command_history.response_payload) %></pre>
+  </div>
+
+</div>

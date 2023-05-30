@@ -108,14 +108,17 @@ class App < Sinatra::Base
       when 'Idle'
         # nothing to do
       when 'NotNow'
-        command_queue.find_handling_request(command_uuid: command_uuid).reschedule
+        handling_request = command_queue.find_handling_request(command_uuid: command_uuid)
+        MdmCommandHistory.log_result(handling_request, plist)
+        handling_request.reschedule
       when 'Acknowledged', 'Error'
-        request = command_queue.find_handling_request(command_uuid: command_uuid)
+        handling_request = command_queue.find_handling_request(command_uuid: command_uuid)
+        MdmCommandHistory.log_result(handling_request, plist)
         # mark as completed.
-        request.destroy!
+        handling_request.destroy!
 
         # Additional response handling here.
-        if (request_type = request.request_payload.dig('Command', 'RequestType'))
+        if (request_type = handling_request.request_payload.dig('Command', 'RequestType'))
           if (handler_klass = CommandResponseHandler.const_get("#{request_type}#{status}") rescue nil)
             if status == 'Error'
               handler_klass.new(udid, plist['ErrorChain']).handle
@@ -145,5 +148,42 @@ class App < Sinatra::Base
     else
       200
     end
+  end
+
+  get '/devices' do
+    erb :'devices/index.html'
+  end
+
+  get '/devices/:udid' do
+    erb :'devices/show.html'
+  end
+
+  get '/devices/:udid/commands/:command_uuid' do
+    erb :'devices/command.html'
+  end
+
+  post '/commands/template.txt' do
+    if params[:class] && Command.const_defined?(params[:class])
+      args = JSON.parse(params[:args]) rescue {}
+      command = Command.const_get(params[:class]).new(**args)
+      command.request_payload.to_plist
+    else
+      ''
+    end
+  end
+
+  post '/devices/:udid/commands' do
+    if params[:payload].present?
+      command = Data.define(:request_payload).new(request_payload: Plist.parse_xml(params[:payload], marshal: false))
+      CommandQueue.new(params[:udid]) << command
+    end
+    redirect "/devices/#{params[:udid]}"
+  end
+
+  post '/devices/:udid/push' do
+    mdm_push_token = MdmPushToken.find_by!(udid: params[:udid])
+    push_result = PushClient.new.send_mdm_notification(mdm_push_token)
+    puts "push_result: #{push_result.inspect}"
+    redirect "/devices/#{params[:udid]}"
   end
 end
