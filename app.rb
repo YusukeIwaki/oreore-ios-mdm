@@ -103,44 +103,38 @@ class App < Sinatra::Base
 
     command_queue = CommandQueue.new(udid)
     command_uuid = plist['CommandUUID']
-    begin
-      case status
-      when 'Idle'
-        # nothing to do
-      when 'NotNow'
-        handling_request = command_queue.find_handling_request(command_uuid: command_uuid)
-        MdmCommandHistory.log_result(handling_request, plist)
-        handling_request.reschedule
-      when 'Acknowledged', 'Error'
-        handling_request = command_queue.find_handling_request(command_uuid: command_uuid)
-        MdmCommandHistory.log_result(handling_request, plist)
-        # mark as completed.
-        handling_request.destroy!
 
-        # Additional response handling here.
-        if (request_type = handling_request.request_payload.dig('Command', 'RequestType'))
-          if (handler_klass = CommandResponseHandler.const_get("#{request_type}#{status}") rescue nil)
-            if status == 'Error'
-              handler_klass.new(udid, plist['ErrorChain']).handle
-            else
-              response_payload = plist.reject do |key, value|
-                %w[Status UDID CommandUUID ErrorChain].include?(key)
-              end
-              handler_klass.new(udid, response_payload).handle
-            end
-          end
-        end
-      when 'CommandFormatError'
-        command_queue.find_handling_request(command_uuid: command_uuid)&.destroy!
-        logger.warn("CommandFormatError: #{plist}")
+    unless status == 'Idle'
+      begin
+        handling_request = command_queue.dequeue_handling_request(command_uuid: command_uuid)
+        MdmCommandHistory.log_result(handling_request, plist)
+      rescue ActiveRecord::RecordNotFound
+        # iOS sometimes retry MDM response.
+        # Just ignore if CommandUUID is already handled and not in DB.
+        logger.warn("CommandUUID not in DB: #{plist}")
       end
-    rescue ActiveRecord::RecordNotFound
-      # iOS sometimes retry MDM response.
-      # Just ignore if CommandUUID is already handled and not in DB.
-      logger.warn("CommandUUID not in DB: #{plist}")
+    end
+
+    # Additional response handling here.
+    if ['Acknowledged', 'Error'].include?(status) && (request_type = handling_request.request_payload.dig('Command', 'RequestType'))
+      if (handler_klass = CommandResponseHandler.const_get("#{request_type}#{status}") rescue nil)
+        if status == 'Error'
+          handler_klass.new(udid, plist['ErrorChain']).handle
+        else
+          response_payload = plist.reject do |key, value|
+            %w[Status UDID CommandUUID ErrorChain].include?(key)
+          end
+          handler_klass.new(udid, response_payload).handle
+        end
+      end
     end
 
     command = command_queue.dequeue
+
+    if status == 'NotNow' && handling_request
+      command_queue << handling_request
+    end
+
     logger.info("command: #{command || 'nil'}")
     if command
       content_type 'application/xml'

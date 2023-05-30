@@ -3,6 +3,7 @@ class CommandQueue
     @device_identifier = device_identifier
   end
 
+  # @param [Command|MdmCommandHandlingRequest] command
   def <<(command)
     MdmCommandRequest.create!(
       device_identifier: @device_identifier,
@@ -26,15 +27,23 @@ class CommandQueue
     mdm_command_request = MdmCommandRequest.find_by(device_identifier: @device_identifier)
     return nil unless mdm_command_request
 
-    mdm_command_request.start_handling
+    MdmCommandRequest.transaction do
+      MdmCommandHandlingRequest.create!(
+        device_identifier: mdm_command_request.device_identifier,
+        command_uuid: mdm_command_request.request_payload['CommandUUID'],
+        request_payload: mdm_command_request.request_payload,
+      )
+      mdm_command_request.destroy!
+    end
+
     mdm_command_request.request_payload
   end
 
-  def find_handling_request(command_uuid:)
+  def dequeue_handling_request(command_uuid:)
     MdmCommandHandlingRequest.find_by!(
       device_identifier: @device_identifier,
       command_uuid: command_uuid,
-    )
+    ).tap(&:destroy!)
   end
 
   def size

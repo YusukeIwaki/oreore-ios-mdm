@@ -49,7 +49,6 @@ end
 add_index "mdm_command_histories",
   ["device_identifier", "command_uuid"],
   name: "index_command_histories_device_identifier_command_uuid",
-  unique: true,
   using: :btree
 
 add_index "mdm_command_histories",
