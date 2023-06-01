@@ -1,5 +1,12 @@
 # oreore-ios-mdm
 
+## Prepare GitHub OAuth apps
+
+- GITHUB_CLEINT_ID
+- GITHUB_CLIENT_SECRET
+
+and set allowed user names like this: `export GITHUB_LOGIN_ALLOWED_USERS=YusukeIwaki,Octcat`
+
 ## Prepare MDM push certificate
 
 At first, `bundle exec ruby util/create_server_certificates.rb` generates server keys and certificates, and push certificate sign request.

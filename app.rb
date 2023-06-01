@@ -14,14 +14,32 @@ loader.push_dir('./lib')
 loader.push_dir('./models')
 loader.setup
 
+require 'omniauth'
+require 'omniauth-github'
 require 'sinatra/base'
 
 Tilt.register('rb', Tilt::RubyTemplate)
 Sinatra::Templates.prepend(SinatraTemplatesExtension)
 
 class App < Sinatra::Base
+  enable :sessions
+  use OmniAuth::Builder do
+    provider :github, ENV['GITHUB_CLIENT_ID'], ENV['GITHUB_CLIENT_SECRET']
+  end
   use SinatraStdoutLogging
+
   helpers do
+    def logged_in?
+      session[:uid].present?
+    end
+
+    def login_required
+      unless logged_in?
+        session[:return_to] = request.fullpath
+        redirect '/'
+      end
+    end
+
     def verbose_print_request
       lines = []
       request.env.each do |key, value|
@@ -34,6 +52,33 @@ class App < Sinatra::Base
       request.body.rewind
 
       logger.info(lines.join("\n"))
+    end
+  end
+
+  get '/' do
+    if logged_in?
+      redirect '/devices'
+    else
+      erb :'login.html'
+    end
+  end
+
+  get '/auth/github/callback' do
+    url = session.delete(:return_to)
+    return_url =
+      if url.blank? || url.include?('/auth/')
+        '/'
+      else
+        url
+      end
+
+    auth_hash = env["omniauth.auth"]
+    username = auth_hash.dig('extra', 'raw_info', 'login')
+    if ENV['GITHUB_LOGIN_ALLOWED_USERS'].split(',').include?(username)
+      session[:uid] = username
+      redirect return_url
+    else
+      halt 403, 'Access Forbidden'
     end
   end
 
@@ -145,14 +190,17 @@ class App < Sinatra::Base
   end
 
   get '/devices' do
+    login_required
     erb :'devices/index.html'
   end
 
   get '/devices/:udid' do
+    login_required
     erb :'devices/show.html'
   end
 
   get '/devices/:udid/commands/:command_uuid' do
+    login_required
     erb :'devices/command.html'
   end
 
@@ -167,6 +215,7 @@ class App < Sinatra::Base
   end
 
   post '/devices/:udid/commands' do
+    login_required
     if params[:payload].present?
       command = Data.define(:request_payload).new(request_payload: Plist.parse_xml(params[:payload], marshal: false))
       CommandQueue.new(params[:udid]) << command
@@ -175,6 +224,7 @@ class App < Sinatra::Base
   end
 
   post '/devices/:udid/push' do
+    login_required
     mdm_push_token = MdmPushToken.find_by!(udid: params[:udid])
     push_result = PushClient.new.send_mdm_notification(mdm_push_token)
     puts "push_result: #{push_result.inspect}"

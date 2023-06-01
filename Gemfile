@@ -7,6 +7,8 @@ ruby '~> 3.0.2'
 gem 'apnotic'
 gem 'data_class_factory'
 gem 'faraday'
+gem 'omniauth'
+gem 'omniauth-github'
 gem 'puma'
 gem 'rack'
 gem 'sinatra', require: false
