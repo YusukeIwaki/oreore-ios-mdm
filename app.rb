@@ -78,6 +78,16 @@ class App < Sinatra::Base
       session[:uid] = username
       redirect return_url
     else
+      if ENV['MS_TEAMS_WEBHOOK_URL'].present? && username.present?
+        Thread.new(username) do |_username|
+          Net::HTTP.post(
+            URI(ENV['MS_TEAMS_WEBHOOK_URL']),
+            { text: "Login from username: '#{_username}'" }.to_json,
+            { 'Content-Type' => 'application/json' }
+          )
+        end
+      end
+
       halt 403, 'Access Forbidden'
     end
   end
