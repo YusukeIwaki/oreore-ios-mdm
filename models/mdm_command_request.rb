@@ -1,5 +1,5 @@
 class MdmCommandRequest < ActiveRecord::Base
-  attribute :request_payload, :json
+  attribute :request_payload, :plist
 
   def start_handling
     transaction do

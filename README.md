@@ -81,3 +81,12 @@ push_client.send_mdm_notification(
   ],
 )
 ```
+
+## Declaration
+
+```
+DeclarativeManagement::AccountGoogleConfiguration.new(visible_name: "岩木 祐輔", user_identity_asset: DeclarativeManagement::UserIdentityAsset.new(full_name: "Yusuke Iwaki", email_address: "iwaki@example.com")).save!
+
+mdm_push_token = MdmPushToken.last
+decl = DeclarativeManagement::Declaration.new(mdm_push_token.udid)
+```

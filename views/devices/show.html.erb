@@ -13,6 +13,7 @@
   <form action="/devices/<%= @mdm_push_token.udid %>/commands" class="card p-2" method="post">
     <select class="form-select form-select-sm mb-3" id="select_template">
       <option value=''>Custom</option>
+      <option value="DeclarativeManagement">DeclarativeManagement</option>
       <option value="DeviceInformation">DeviceInformation</option>
       <option value="InstalledApplicationList">InstalledApplicationList</option>
       <option value="EnableLostMode">EnableLostMode</option>
@@ -85,6 +86,15 @@
   selectTemplate.addEventListener('change', (event) => {
     let payload = document.getElementById('input_payload')
     let selected = event.target.value
+    if (selected == 'DeclarativeManagement') {
+      let form = new FormData()
+      form.append('class', 'DeclarativeManagement')
+      form.append('udid', '<%= @mdm_push_token.udid %>')
+      request('POST', '/commands/template.txt', form).then((response) => {
+        payload.innerHTML = response.trim()
+      })
+      return
+    }
     if (!!selected) {
       let form = new FormData()
       form.append('class', selected)
@@ -98,7 +108,7 @@
   <h2>Command History</h2>
   <% if @command_histories.present? %>
   <div class="list-group">
-  <% @command_histories.each do |command_history| %>
+  <% @command_histories.last(10).each do |command_history| %>
     <a href="/devices/<%= @mdm_push_token.udid %>/commands/<%= command_history.command_uuid %>" class="list-group-item list-group-item-action">
     <%= command_history.request_type %> - <%= command_history.command_uuid %> (<%= command_history.created_at %>)
     </a>

@@ -1,18 +1,8 @@
 require 'bundler'
 Bundler.require :default, (ENV['RACK_ENV'] || :development).to_sym
 
-ActiveRecord::Base.logger = Logger.new($stdout)
-ActiveRecord.verbose_query_logs = true
-
-require 'active_support/core_ext'
-Time.zone_default = Time.find_zone!("Asia/Tokyo")
-ActiveRecord::Base.time_zone_aware_attributes = true
-ActiveRecord.default_timezone = :local
-
-loader = Zeitwerk::Loader.new
-loader.push_dir('./lib')
-loader.push_dir('./models')
-loader.setup
+require_relative './config/active_record'
+require_relative './config/zeitwerk'
 
 require 'omniauth'
 require 'omniauth-github'
@@ -21,25 +11,10 @@ require 'sinatra/base'
 Tilt.register('rb', Tilt::RubyTemplate)
 Sinatra::Templates.prepend(SinatraTemplatesExtension)
 
-class App < Sinatra::Base
-  enable :sessions
-  use OmniAuth::Builder do
-    provider :github, ENV['GITHUB_CLIENT_ID'], ENV['GITHUB_CLIENT_SECRET']
-  end
+class MdmServer < Sinatra::Base
   use SinatraStdoutLogging
 
   helpers do
-    def logged_in?
-      session[:uid].present?
-    end
-
-    def login_required
-      unless logged_in?
-        session[:return_to] = request.fullpath
-        redirect '/'
-      end
-    end
-
     def verbose_print_request
       lines = []
       request.env.each do |key, value|
@@ -52,43 +27,6 @@ class App < Sinatra::Base
       request.body.rewind
 
       logger.info(lines.join("\n"))
-    end
-  end
-
-  get '/' do
-    if logged_in?
-      redirect '/devices'
-    else
-      erb :'login.html'
-    end
-  end
-
-  get '/auth/github/callback' do
-    url = session.delete(:return_to)
-    return_url =
-      if url.blank? || url.include?('/auth/')
-        '/'
-      else
-        url
-      end
-
-    auth_hash = env["omniauth.auth"]
-    username = auth_hash.dig('extra', 'raw_info', 'login')
-    if ENV['GITHUB_LOGIN_ALLOWED_USERS'].split(',').include?(username)
-      session[:uid] = username
-      redirect return_url
-    else
-      if ENV['MS_TEAMS_WEBHOOK_URL'].present? && username.present?
-        Thread.new(username) do |_username|
-          Net::HTTP.post(
-            URI(ENV['MS_TEAMS_WEBHOOK_URL']),
-            { text: "Login from username: '#{_username}'" }.to_json,
-            { 'Content-Type' => 'application/json' }
-          )
-        end
-      end
-
-      halt 403, 'Access Forbidden'
     end
   end
 
@@ -123,6 +61,26 @@ class App < Sinatra::Base
     verbose_print_request
 
     plist = Plist.parse_xml(request.body.read, marshal: false)
+
+    if plist['MessageType'] == 'DeclarativeManagement'
+      unless plist['Endpoint']
+        halt 400, 'Bad request'
+      end
+
+      endpoint = plist['Endpoint']
+      data = plist['Data'] ? JSON.parse(plist['Data'].read) : nil
+
+      logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
+      content_type 'application/json'
+      router = DeclarativeManagementRouter.new(plist['UDID'])
+      begin
+        response = router.handle_request(endpoint, data)
+        return response.to_json
+      rescue DeclarativeManagementRouter::RouteNotFound
+        halt 404, 'Not found'
+      end
+    end
+
     if plist.delete('Topic') != PushCertificate.from_env.topic
       halt 403, 'Topic mismatch'
     end
@@ -198,6 +156,63 @@ class App < Sinatra::Base
       200
     end
   end
+end
+
+class SimpleAdminConsole < Sinatra::Base
+  enable :sessions
+  use OmniAuth::Builder do
+    provider :github, ENV['GITHUB_CLIENT_ID'], ENV['GITHUB_CLIENT_SECRET']
+  end
+
+  helpers do
+    def logged_in?
+      session[:uid].present?
+    end
+
+    def login_required
+      unless logged_in?
+        session[:return_to] = request.fullpath
+        redirect '/'
+      end
+    end
+  end
+
+  get '/' do
+    if logged_in?
+      redirect '/devices'
+    else
+      erb :'login.html'
+    end
+  end
+
+  get '/auth/github/callback' do
+    url = session.delete(:return_to)
+    return_url =
+      if url.blank? || url.include?('/auth/')
+        '/'
+      else
+        url
+      end
+
+    auth_hash = env["omniauth.auth"]
+    username = auth_hash.dig('extra', 'raw_info', 'login')
+    if ENV['GITHUB_LOGIN_ALLOWED_USERS'].split(',').include?(username)
+      session[:uid] = username
+      redirect return_url
+    else
+      if ENV['MS_TEAMS_WEBHOOK_URL'].present? && username.present?
+        Thread.new(username) do |_username|
+          Net::HTTP.post(
+            URI(ENV['MS_TEAMS_WEBHOOK_URL']),
+            { text: "Login from username: '#{_username}'" }.to_json,
+            { 'Content-Type' => 'application/json' }
+          )
+        end
+      end
+
+      halt 403, 'Access Forbidden'
+    end
+  end
 
   get '/devices' do
     login_required
@@ -215,9 +230,12 @@ class App < Sinatra::Base
   end
 
   post '/commands/template.txt' do
-    if params[:class] && Command.const_defined?(params[:class])
-      args = JSON.parse(params[:args]) rescue {}
-      command = Command.const_get(params[:class]).new(**args)
+    if params[:class] == 'DeclarativeManagement'
+      declaration = DeclarativeManagement::Declaration.new(params[:udid])
+      command = Command::DeclarativeManagement.new(tokens: declaration.tokens)
+      command.request_payload.to_plist
+    elsif params[:class] && Command.const_defined?(params[:class])
+      command = Command.const_get(params[:class]).new
       command.request_payload.to_plist
     else
       ''
@@ -240,4 +258,9 @@ class App < Sinatra::Base
     puts "push_result: #{push_result.inspect}"
     redirect "/devices/#{params[:udid]}"
   end
+end
+
+class App < Sinatra::Base
+  use MdmServer
+  use SimpleAdminConsole
 end
