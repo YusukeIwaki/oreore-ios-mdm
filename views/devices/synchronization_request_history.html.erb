@@ -1,0 +1,21 @@
+<%
+  @synchronization_request_history = DeclarativeManagement::SynchronizationRequestHistory.
+    where(udid: params[:udid]).find(params[:id])
+%>
+
+<div class="container">
+  <h1>Device - <%= params[:udid] %></h1>
+  <h2>Endpoint - <%= @synchronization_request_history.endpoint %></h2>
+  <p><%= @synchronization_request_history.created_at %></p>
+
+  <h3>Request</h3>
+  <div class="card p-2 mb-4">
+  <pre><%= ERB::Util.h(JSON.pretty_generate(@synchronization_request_history.request_payload)) %></pre>
+  </div>
+
+  <h3>Response</h3>
+  <div class="card p-2 mb-4">
+  <pre><%= ERB::Util.h(JSON.pretty_generate(@synchronization_request_history.response_payload)) %></pre>
+  </div>
+
+</div>

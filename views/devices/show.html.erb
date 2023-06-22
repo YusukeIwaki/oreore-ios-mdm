@@ -4,6 +4,7 @@
   @command_requests = MdmCommandRequest.where(device_identifier: @mdm_push_token.udid)
   @command_handling_requests = MdmCommandHandlingRequest.where(device_identifier: @mdm_push_token.udid)
   @command_histories = MdmCommandHistory.where(device_identifier: @mdm_push_token.udid).select(:command_uuid, :request_type, :created_at)
+  @synchronization_request_histories = DeclarativeManagement::SynchronizationRequestHistory.where(udid: @mdm_push_token.udid).select(:id, :endpoint, :created_at)
 %>
 
 <div class="container">
@@ -118,4 +119,16 @@
   no histories
   <% end %>
 
+  <h2>DeclarativeManagement Synchronization History</h2>
+  <% if @synchronization_request_histories.present? %>
+  <div class="list-group">
+  <% @synchronization_request_histories.last(10).each do |synchronization_request_history| %>
+    <a href="/devices/<%= @mdm_push_token.udid %>/synchronization_request_histories/<%= synchronization_request_history.id %>" class="list-group-item list-group-item-action">
+    <%= synchronization_request_history.endpoint %> - (<%= synchronization_request_history.created_at %>)
+    </a>
+  <% end %>
+  </div>
+  <% else %>
+  no histories
+  <% end %>
 </div>

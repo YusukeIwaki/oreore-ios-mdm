@@ -162,3 +162,21 @@ add_index "declarative_management_management_properties",
   name: "index_ddm_management_properties_identifier",
   unique: true,
   using: :btree
+
+create_table "declarative_management_synchronization_request_histories", force: :cascade do |t|
+  t.string "udid", null: false
+  t.string "endpoint", null: false
+  t.text "request_payload"
+  t.text "response_payload"
+  t.datetime "created_at", null: false
+end
+
+add_index "declarative_management_synchronization_request_histories",
+  ["udid", "endpoint"],
+  name: "index_ddm_synchronization_request_histories_udid_endpoint",
+  using: :btree
+
+add_index "declarative_management_synchronization_request_histories",
+  ["created_at"],
+  name: "index_ddm_synchronization_request_histories_created_at",
+  using: :btree

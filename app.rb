@@ -75,8 +75,12 @@ class MdmServer < Sinatra::Base
       router = DeclarativeManagementRouter.new(plist['UDID'])
       begin
         response = router.handle_request(endpoint, data)
+        DeclarativeManagement::SynchronizationRequestHistory.
+          log_response(plist['UDID'], endpoint, data, response)
         return response.to_json
       rescue DeclarativeManagementRouter::RouteNotFound
+        DeclarativeManagement::SynchronizationRequestHistory.
+          log_404(plist['UDID'], endpoint, data)
         halt 404, 'Not found'
       end
     end
@@ -227,6 +231,11 @@ class SimpleAdminConsole < Sinatra::Base
   get '/devices/:udid/commands/:command_uuid' do
     login_required
     erb :'devices/command.html'
+  end
+
+  get '/devices/:udid/synchronization_request_histories/:id' do
+    login_required
+    erb :'devices/synchronization_request_history.html'
   end
 
   post '/commands/template.txt' do
