@@ -118,7 +118,8 @@ class MdmServer < Sinatra::Base
       halt 400, 'Bad request'
     end
 
-    command_queue = CommandQueue.new(udid)
+    device = MdmDevice.find_by!(udid: udid)
+    command_queue = CommandQueue.for_device(device)
     command_uuid = plist['CommandUUID']
 
     unless status == 'Idle'
@@ -255,17 +256,23 @@ class SimpleAdminConsole < Sinatra::Base
     login_required
     if params[:payload].present?
       command = Data.define(:request_payload).new(request_payload: Plist.parse_xml(params[:payload], marshal: false))
-      CommandQueue.new(params[:udid]) << command
+      CommandQueue.for_device(MdmDevice.find_by!(udid: params[:udid])) << command
     end
     redirect "/devices/#{params[:udid]}"
   end
 
   post '/devices/:udid/push' do
     login_required
-    mdm_push_token = MdmPushToken.find_by!(udid: params[:udid])
-    push_result = PushClient.new.send_mdm_notification(mdm_push_token)
+    mdm_push_endpoint = MdmDevice.find_by!(udid: params[:udid]).mdm_push_endpoint
+    push_result = PushClient.new.send_mdm_notification(mdm_push_endpoint)
     puts "push_result: #{push_result.inspect}"
     redirect "/devices/#{params[:udid]}"
+  end
+
+  get '/device_groups/:id' do
+    login_required
+    @device_group = DeviceGroup.find(params[:id])
+    erb :'/device_groups/edit.html'
   end
 end
 

@@ -27,11 +27,24 @@ module CheckinRequest
     end
 
     def handle
-      MdmPushToken.find_or_initialize_by(udid: udid).update!(
-        token: token,
-        push_magic: push_magic,
-        unlock_token: unlock_token,
-      )
+      mdm_device = MdmDevice.find_or_initialize_by(udid: udid)
+
+      if mdm_device.persisted?
+        mdm_device.mdm_push_endpoint.update!(
+          token: token,
+          push_magic: push_magic,
+          unlock_token: unlock_token,
+        )
+      else
+        ActiveRecord::Base.transaction do
+          mdm_device.save!
+          mdm_device.create_mdm_push_endpoint!(
+            token: token,
+            push_magic: push_magic,
+            unlock_token: unlock_token,
+          )
+        end
+      end
 
       nil
     end

@@ -17,12 +17,10 @@ class PushClient
   end
 
   # @return [Response]
-  def send_mdm_notification(mdm_push_token, commands: [])
-    if commands.present?
-      command_queue = CommandQueue.new(mdm_push_token.udid)
-      commands.each { |command| command_queue << command }
-    end
-    notification = Apnotic::MdmNotification.new(token: mdm_push_token.token, push_magic: mdm_push_token.push_magic)
+  def send_mdm_notification(mdm_push_endpoint)
+    notification = Apnotic::MdmNotification.new(
+                    token: mdm_push_endpoint.token,
+                    push_magic: mdm_push_endpoint.push_magic)
     @apnotic_connection.push(notification)
   end
 end

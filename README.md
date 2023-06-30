@@ -63,25 +63,6 @@ URL: `https://<your domain>/mdm/appleconfigurator`
 
 Visit `https://<your domain>/mdm.mobileconfig`
 
-## Send commands
-
-```
-$ bin/console
-```
-
-```
-push_client = PushClient.new
-
-mdm_push_token = MdmPushToken.last
-push_client.send_mdm_notification(
-  mdm_push_token,
-  commands: [
-    Command::DeviceInformation.new,
-    Command::InstalledApplicationList.new,
-  ],
-)
-```
-
 ## Declaration
 
 ```

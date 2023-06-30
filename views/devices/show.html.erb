@@ -1,17 +1,17 @@
 <%
-  @mdm_push_token = MdmPushToken.find_by!(udid: params[:udid])
+  @device = MdmDevice.find_by!(udid: params[:udid])
 
-  @command_requests = MdmCommandRequest.where(device_identifier: @mdm_push_token.udid)
-  @command_handling_requests = MdmCommandHandlingRequest.where(device_identifier: @mdm_push_token.udid)
-  @command_histories = MdmCommandHistory.where(device_identifier: @mdm_push_token.udid).select(:command_uuid, :request_type, :created_at)
-  @synchronization_request_histories = DeclarativeManagement::SynchronizationRequestHistory.where(udid: @mdm_push_token.udid).select(:id, :endpoint, :created_at)
+  @command_requests = MdmCommandRequest.where(mdm_device: @device)
+  @command_handling_requests = MdmCommandHandlingRequest.where(mdm_device: @device)
+  @command_histories = MdmCommandHistory.where(mdm_device: @device).select(:command_uuid, :request_type, :created_at)
+  @synchronization_request_histories = DeclarativeManagement::SynchronizationRequestHistory.where(udid: @device.udid).select(:id, :endpoint, :created_at)
 %>
 
 <div class="container">
-  <h1>Device - <%= @mdm_push_token.udid %></h1>
+  <h1>Device - <%= @device.udid %></h1>
 
   <h2>Commands</h2>
-  <form action="/devices/<%= @mdm_push_token.udid %>/commands" class="card p-2" method="post">
+  <form action="/devices/<%= @device.udid %>/commands" class="card p-2" method="post">
     <select class="form-select form-select-sm mb-3" id="select_template">
       <option value=''>Custom</option>
       <option value="DeclarativeManagement">DeclarativeManagement</option>
@@ -29,7 +29,7 @@
   </form>
 
   <h2>Command Queue</h2>
-  <form action="/devices/<%= @mdm_push_token.udid %>/push" method="post">
+  <form action="/devices/<%= @device.udid %>/push" method="post">
     <button type="submit" class="btn btn-outline-primary">Request fetching commands</button>
   </form>
 
@@ -90,7 +90,7 @@
     if (selected == 'DeclarativeManagement') {
       let form = new FormData()
       form.append('class', 'DeclarativeManagement')
-      form.append('udid', '<%= @mdm_push_token.udid %>')
+      form.append('udid', '<%= @device.udid %>')
       request('POST', '/commands/template.txt', form).then((response) => {
         payload.innerHTML = response.trim()
       })
@@ -110,7 +110,7 @@
   <% if @command_histories.present? %>
   <div class="list-group">
   <% @command_histories.last(10).each do |command_history| %>
-    <a href="/devices/<%= @mdm_push_token.udid %>/commands/<%= command_history.command_uuid %>" class="list-group-item list-group-item-action">
+    <a href="/devices/<%= @device.udid %>/commands/<%= command_history.command_uuid %>" class="list-group-item list-group-item-action">
     <%= command_history.request_type %> - <%= command_history.command_uuid %> (<%= command_history.created_at %>)
     </a>
   <% end %>
@@ -123,7 +123,7 @@
   <% if @synchronization_request_histories.present? %>
   <div class="list-group">
   <% @synchronization_request_histories.last(10).each do |synchronization_request_history| %>
-    <a href="/devices/<%= @mdm_push_token.udid %>/synchronization_request_histories/<%= synchronization_request_history.id %>" class="list-group-item list-group-item-action">
+    <a href="/devices/<%= @device.udid %>/synchronization_request_histories/<%= synchronization_request_history.id %>" class="list-group-item list-group-item-action">
     <%= synchronization_request_history.endpoint %> - (<%= synchronization_request_history.created_at %>)
     </a>
   <% end %>

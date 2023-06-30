@@ -9,3 +9,4 @@
 /util/*.p12
 
 /.DS_Store
+/.heroku.config
