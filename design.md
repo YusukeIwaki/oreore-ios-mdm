@@ -10,7 +10,7 @@
 ## Declaration
 
 ```
-groups/
+device_groups/
 |-group1.yml
 |-group2.yml
 ```

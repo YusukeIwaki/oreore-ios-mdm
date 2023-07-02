@@ -25,6 +25,10 @@ module CheckinRequest
     end
 
     def handle
+      PendingCheckin.find_or_initialize_by(udid: udid).update!(
+        imei: imei&.gsub(/\s/, ''),
+        serial_number: serial_number,
+      )
     end
 
     private

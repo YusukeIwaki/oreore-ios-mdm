@@ -16,7 +16,7 @@
   <div class="list-group">
   <% @devices.each do |device| %>
     <a href="/devices/<%= device.udid %>" class="list-group-item list-group-item-action">
-    <%= device.udid %>
+    <%= device.serial_number %>
     </a>
   <% end %>
   </div>

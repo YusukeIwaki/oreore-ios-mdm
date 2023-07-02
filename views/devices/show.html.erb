@@ -8,7 +8,7 @@
 %>
 
 <div class="container">
-  <h1>Device - <%= @device.udid %></h1>
+  <h1>Device - <%= @device.serial_number %></h1>
 
   <h2>Commands</h2>
   <form action="/devices/<%= @device.udid %>/commands" class="card p-2" method="post">

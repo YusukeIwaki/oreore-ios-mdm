@@ -27,22 +27,31 @@ module CheckinRequest
     end
 
     def handle
-      mdm_device = MdmDevice.find_or_initialize_by(udid: udid)
+      pending_checkin = PendingCheckin.find_by!(udid: udid)
 
-      if mdm_device.persisted?
-        mdm_device.mdm_push_endpoint.update!(
-          token: token,
-          push_magic: push_magic,
-          unlock_token: unlock_token,
-        )
+      mdm_device = MdmDevice.find_by(udid: udid)
+      if mdm_device
+        ActiveRecord::Base.transaction do
+          mdm_device.mdm_push_endpoint.update!(
+            token: token,
+            push_magic: push_magic,
+            unlock_token: unlock_token,
+          )
+          pending_checkin.destroy!
+        end
       else
         ActiveRecord::Base.transaction do
-          mdm_device.save!
+          mdm_device = MdmDevice.create!(
+            udid: udid,
+            imei: pending_checkin.imei,
+            serial_number: pending_checkin.serial_number,
+          )
           mdm_device.create_mdm_push_endpoint!(
             token: token,
             push_magic: push_magic,
             unlock_token: unlock_token,
           )
+          pending_checkin.destroy!
         end
       end
 
