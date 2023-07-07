@@ -1,10 +1,12 @@
 <%
+  @device = MdmDevice.find_by!(udid: params[:udid])
   @synchronization_request_history = DeclarativeManagement::SynchronizationRequestHistory.
-    where(udid: params[:udid]).find(params[:id])
+    where(mdm_device: @device).find(params[:id])
 %>
 
 <div class="container">
-  <h1>Device - <%= params[:udid] %></h1>
+  <h1>Device - <%= @device.serial_number %></h1>
+
   <h2>Endpoint - <%= @synchronization_request_history.endpoint %></h2>
   <p><%= @synchronization_request_history.created_at %></p>
 

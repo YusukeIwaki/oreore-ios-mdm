@@ -4,7 +4,7 @@
   @command_requests = MdmCommandRequest.where(mdm_device: @device)
   @command_handling_requests = MdmCommandHandlingRequest.where(mdm_device: @device)
   @command_histories = MdmCommandHistory.where(mdm_device: @device).select(:command_uuid, :request_type, :created_at)
-  @synchronization_request_histories = DeclarativeManagement::SynchronizationRequestHistory.where(udid: @device.udid).select(:id, :endpoint, :created_at)
+  @synchronization_request_histories = DeclarativeManagement::SynchronizationRequestHistory.where(mdm_device: @device).select(:id, :endpoint, :created_at)
 %>
 
 <div class="container">

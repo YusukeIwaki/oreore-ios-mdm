@@ -97,115 +97,8 @@ add_index "mdm_command_histories",
   name: "index_command_histories_created_at",
   using: :btree
 
-create_table "declarative_management_activations" do |t|
-  t.string "name", null: false
-  t.string "identifier", null: false
-  t.text "predicate", null: false
-  t.datetime "created_at", null: false
-  t.datetime "updated_at", null: false
-end
-
-add_index "declarative_management_activations",
-  ["name"],
-  name: "index_ddm_activations_name",
-  unique: true,
-  using: :btree
-
-add_index "declarative_management_activations",
-  ["identifier"],
-  name: "index_ddm_activations_identifier",
-  unique: true,
-  using: :btree
-
-create_table "declarative_management_activation_target_configurations" do |t|
-  t.bigint "activation_id", null: false
-  t.string "configuration_type", null: false
-  t.string "configuration_identifier", null: false
-  t.datetime "created_at", null: false
-  t.datetime "updated_at", null: false
-end
-
-add_index "declarative_management_activation_target_configurations",
-  ["activation_id", "configuration_identifier"],
-  name: "index_ddm_activation_target",
-  unique: true,
-  using: :btree
-
-add_index "declarative_management_activation_target_configurations",
-  ["configuration_identifier", "configuration_type"],
-  name: "index_ddm_activation_target_configurations",
-  using: :btree
-
-create_table "declarative_management_account_google_configurations" do |t|
-  t.string "identifier", null: false
-  t.string "visible_name"
-  t.string "user_identity_asset_identifier", null: false
-  t.datetime "created_at", null: false
-  t.datetime "updated_at", null: false
-end
-
-add_index "declarative_management_account_google_configurations",
-  ["identifier"],
-  name: "index_ddm_account_google_configurations_identifier",
-  unique: true,
-  using: :btree
-
-add_index "declarative_management_account_google_configurations",
-  ["user_identity_asset_identifier"],
-  name: "index_ddm_account_google_configurations_user_identity",
-  unique: true,
-  using: :btree
-
-create_table "declarative_management_management_test_configurations" do |t|
-  t.string "identifier", null: false
-  t.text "echo", null: false
-  t.text "return_status"
-  t.datetime "created_at", null: false
-  t.datetime "updated_at", null: false
-end
-
-add_index "declarative_management_management_test_configurations",
-  ["identifier"],
-  name: "index_ddm_management_test_configurations_identifier",
-  unique: true,
-  using: :btree
-
-create_table "declarative_management_user_identity_assets" do |t|
-  t.string "identifier", null: false
-  t.string "full_name", null: false
-  t.string "email_address", null: false
-  t.datetime "created_at", null: false
-  t.datetime "updated_at", null: false
-end
-
-add_index "declarative_management_user_identity_assets",
-  ["identifier"],
-  name: "index_ddm_user_identity_assets_identifier",
-  unique: true,
-  using: :btree
-
-create_table "declarative_management_management_properties" do |t|
-  t.string "identifier", null: false
-  t.string "device_identifier", null: false
-  t.text "data", null: false
-  t.datetime "created_at", null: false
-  t.datetime "updated_at", null: false
-end
-
-add_index "declarative_management_management_properties",
-  ["device_identifier"],
-  name: "index_ddm_management_properties_device_identifier",
-  unique: true,
-  using: :btree
-
-add_index "declarative_management_management_properties",
-  ["identifier"],
-  name: "index_ddm_management_properties_identifier",
-  unique: true,
-  using: :btree
-
 create_table "declarative_management_synchronization_request_histories", force: :cascade do |t|
-  t.string "udid", null: false
+  t.bigint "mdm_device_id", null: false
   t.string "endpoint", null: false
   t.text "request_payload"
   t.text "response_payload"
@@ -213,8 +106,8 @@ create_table "declarative_management_synchronization_request_histories", force: 
 end
 
 add_index "declarative_management_synchronization_request_histories",
-  ["udid", "endpoint"],
-  name: "index_ddm_synchronization_request_histories_udid_endpoint",
+  ["mdm_device_id", "endpoint"],
+  name: "index_ddm_synchronization_request_histories_endpoint",
   using: :btree
 
 add_index "declarative_management_synchronization_request_histories",

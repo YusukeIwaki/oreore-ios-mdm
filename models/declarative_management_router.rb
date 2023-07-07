@@ -1,7 +1,7 @@
 class DeclarativeManagementRouter
-  # @param [String] device_identifier such as UDID.
-  def initialize(device_identifier)
-    @device_identifier = device_identifier
+  # @param [MdmDevice] mdm_device
+  def initialize(mdm_device)
+    @mdm_device = mdm_device
   end
 
   class RouteNotFound < StandardError ; end
@@ -37,36 +37,36 @@ class DeclarativeManagementRouter
 
   # @return [Hash]
   private def handle_declaration_items
-    DeclarativeManagement::Declaration.new(@device_identifier).declaration_items
+    declaration.declaration_items
   end
 
   # @return [Hash]
   private def handle_tokens
-    DeclarativeManagement::Token.new(@device_identifier).tokens
+    declaration.tokens
   end
 
   # @return [Hash]
   private def handle_activation(identifier)
-    activation = DeclarativeManagement::Activation.find_by!(identifier: identifier)
-    activation.declaration_payload.detail
+    declaration.activation_detail_for(identifier) or raise RouteNotFound, "No activation found with identifier #{identifier}"
   end
 
   # @return [Hash]
   private def handle_configuration(identifier)
-    configuration = DeclarativeManagement::ActivationTargetConfiguration.
-                      find_by!(configuration_identifier: identifier).configuration
-    configuration.declaration_payload.detail
+    declaration.configuration_detail_for(identifier) or raise RouteNotFound, "No configuration found with identifier #{identifier}"
   end
 
   # @return [Hash]
   private def handle_asset(identifier)
-    asset = DeclarativeManagement::UserIdentityAsset.find_by(identifier: identifier)
-    asset.declaration_payload.detail
+    declaration.asset_detail_for(identifier) or raise RouteNotFound, "No asset found with identifier #{identifier}"
   end
 
   # @return [Hash]
   private def handle_management(identifier)
-    management = DeclarativeManagement::ManagementProperty.find_by(identifier: identifier)
-    management.declaration_payload.detail
+    declaration.management_detail_for(identifier) or raise RouteNotFound, "No management found with identifier #{identifier}"
+  end
+
+  # @return [DeclarativeManagement::Declaration]
+  private def declaration
+    DeclarativeManagement::Declaration.new(@mdm_device.serial_number)
   end
 end

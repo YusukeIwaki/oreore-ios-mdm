@@ -1,5 +1,6 @@
 module DeclarativeManagement
   class SynchronizationRequestHistory < ActiveRecord::Base
+    belongs_to :mdm_device
     attribute :request_payload, :json
     attribute :response_payload, :json
 

@@ -57,6 +57,11 @@ class MdmServer < Sinatra::Base
     rb :'mdm.mobileconfig'
   end
 
+  get '/mdm/declarative/assets/:file' do
+    verbose_print_request
+    send_file File.join('declarations/public', params[:file])
+  end
+
   put '/mdm/checkin' do
     verbose_print_request
 
@@ -66,21 +71,22 @@ class MdmServer < Sinatra::Base
       unless plist['Endpoint']
         halt 400, 'Bad request'
       end
+      device = MdmDevice.find_by!(udid: plist['UDID'])
 
       endpoint = plist['Endpoint']
       data = plist['Data'] ? JSON.parse(plist['Data'].read) : nil
 
       logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
       content_type 'application/json'
-      router = DeclarativeManagementRouter.new(plist['UDID'])
+      router = DeclarativeManagementRouter.new(device)
       begin
         response = router.handle_request(endpoint, data)
         DeclarativeManagement::SynchronizationRequestHistory.
-          log_response(plist['UDID'], endpoint, data, response)
+          log_response(device, endpoint, data, response)
         return response.to_json
       rescue DeclarativeManagementRouter::RouteNotFound
         DeclarativeManagement::SynchronizationRequestHistory.
-          log_404(plist['UDID'], endpoint, data)
+          log_404(device, endpoint, data)
         halt 404, 'Not found'
       end
     end
