@@ -171,8 +171,14 @@ end
 
 class SimpleAdminConsole < Sinatra::Base
   enable :sessions
-  use OmniAuth::Builder do
-    provider :github, ENV['GITHUB_CLIENT_ID'], ENV['GITHUB_CLIENT_SECRET']
+  if ENV['GITHUB_CLIENT_ID'].present?
+    use OmniAuth::Builder do
+      provider :github, ENV['GITHUB_CLIENT_ID'], ENV['GITHUB_CLIENT_SECRET']
+    end
+  else
+    use OmniAuth::Builder do
+      provider :developer, fields: [:username], uid_field: :username
+    end
   end
 
   helpers do
@@ -193,6 +199,25 @@ class SimpleAdminConsole < Sinatra::Base
       redirect '/devices'
     else
       erb :'login.html'
+    end
+  end
+
+  post '/auth/developer/callback' do
+    url = session.delete(:return_to)
+    return_url =
+      if url.blank? || url.include?('/auth/')
+        '/'
+      else
+        url
+      end
+
+    auth_hash = env["omniauth.auth"]
+    username = auth_hash['uid']
+    if ENV['GITHUB_LOGIN_ALLOWED_USERS'].split(',').include?(username)
+      session[:uid] = username
+      redirect return_url
+    else
+      halt 403, 'Access Forbidden'
     end
   end
 

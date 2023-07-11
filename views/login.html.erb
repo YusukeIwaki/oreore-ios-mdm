@@ -1,4 +1,11 @@
+<% if ENV['GITHUB_CLIENT_ID'].present? %>
 <form action="/auth/github" method="post" class="p-2">
 <input type="hidden" name="authenticity_token" value='<%= request.env["rack.session"]["csrf"] %>'>
 <button type="submit" class="btn btn-primary">Login with GitHub</button>
 </form>
+<% else %>
+<form action="/auth/developer" method="post" class="p-2">
+<input type="hidden" name="authenticity_token" value='<%= request.env["rack.session"]["csrf"] %>'>
+<button type="submit" class="btn btn-primary">Login for debug</button>
+</form>
+<% end %>
