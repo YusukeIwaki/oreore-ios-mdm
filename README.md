@@ -65,9 +65,132 @@ Visit `https://<your domain>/mdm.mobileconfig`
 
 ## Declaration
 
-```
-DeclarativeManagement::AccountGoogleConfiguration.new(visible_name: "岩木 祐輔", user_identity_asset: DeclarativeManagement::UserIdentityAsset.new(full_name: "Yusuke Iwaki", email_address: "iwaki@example.com")).save!
+This app uses files and directories for defining declaration.
 
-mdm_push_token = MdmPushToken.last
-decl = DeclarativeManagement::Declaration.new(mdm_push_token.udid)
 ```
+declarations
+├── device_groups
+│   ├── group1.yml # containing an array of device serial numbers
+│   └── group2.yml
+│
+├── activations
+│   ├── SERIALNUMBER1 # applied to a specific device with SERIALNUMBER1
+│   │   └── apply_wifi_12345_profile.yml
+│   ├── apply_status_report_subscription.yml # applied to all devices
+│   └── group1 # applied to all devices in group1
+│       ├── apply_group1_gmail_for_iphone.yml
+│       └── apply_wifi_11111_profile.yml
+│
+├── configurations
+│   ├── group1_member_gmail.yml
+│   ├── status_report_subscription.yml
+│   ├── wifi_11111_profile.yml
+│   └── wifi_12345_profile.yml
+│
+├── assets
+│   ├── member_gmail
+│   │   ├── SERIALNUMBER1.yml # asset definition for SERIALNUMBER1
+│   │   ├── group1.yml # asset definition for all devices in group1 except for SERIALNUMBER1
+│   │   └── group2.yml # asset definition for all devices in group2 except for SERIALNUMBER1
+│   └── member_gmail.yml # asset definition for all devices except for SERIALNUMBER1 nor group1 nor group2
+│
+├── public
+│   ├── wifi_11111.mobileconfig
+│   └── wifi_12345.mobileconfig
+│
+└── properties
+    ├── age
+    │   ├── SERIALNUMBER1.yml # property definition for SERIALNUMBER1
+    │   └── group1.yml # property definition for all devices in group1 except for SERIALNUMBER1
+    ├── age.yml # property definition for all devices except for SERIALNUMBER1 nor group1
+    └── role
+        └── group1.yml
+
+```
+
+### Device groups
+
+Device groups definitions are put in `declarations/device_groups/*.yml`.
+Serial numbers for devices are listed simply.
+
+```group1.yml
+- SERIALNUMBER1
+- SERIALNUMBER2
+- SERIALNUMBER3
+```
+
+### Describe declaration items
+
+Each declaration item should have `Identifier`, `Type`, `Payload`, and `ServerToken` as is mentioned in [official reference](https://developer.apple.com/documentation/devicemanagement/leveraging_the_declarative_management_data_model_to_scale_devices#3993591) and [schema docs](https://github.com/apple/device-management/blob/release/declarative/declarations/declarationbase.yaml).
+
+In this app, each declaration item is described in a yaml file named `<resource class>/<item_name>.yml` with the content like below:
+
+```configurations/test_hogehoge.yml
+type: com.apple.configuration.management.test
+Echo: hogehoge
+```
+
+The rough pesudo code for generating declaration item is like below:
+
+```
+{
+  Identifier: uuid_from('configurations/test_hogehoge'),
+  Type: yaml['type'],
+  Payload: yaml.except('type'),
+  ServerToken: sha256_from(yaml),
+}
+```
+
+### Configurations
+
+Configuration definitions are put in `declarations/configurations/*.yml`.
+
+```wifi_11111_profile.yml
+type: com.apple.configuration.legacy
+ProfileURL: @public/wifi_11111.mobileconfig
+```
+
+List of the configuration types are available at [apple/device-management](https://github.com/apple/device-management/tree/release/declarative/declarations/configurations) on GitHub.
+
+Note that `type` is not capitalized. Keys/values except for `type` is just passed into the payload of the configuration.
+
+`@assets/some_asset` or `@public/your_file` is available for pointing a reference of asset or public file.
+
+### Activations
+
+Activation definitions are put in `declarations/activations/*.yml`.
+
+```apply_wifi_12345_profile.yml
+type: com.apple.activation.simple
+Predicate: "@status(device.model.family) == 'iPhone'"
+StandardConfigurations:
+  - wifi_12345_profile
+  - apply_status_report_subscription
+```
+
+A device with a serial number 'SERIALNUMBER1' belonging to 'group1' would get all activations defined in
+
+- `declarations/activations/SERIALNUMBER1/**.yml`
+- `declarations/activations/group1/**.yml`
+- in addition to `declarations/activations/**.yml`.
+
+### Assets
+
+Asset definitions are put in `declarations/assets/*.yml`.
+
+A device with a serial number 'SERIALNUMBER1' belonging to 'group1' would try to find a asset/property in with the name `declarations/assets/**/SERIALNUMBER1.yml`, then `declarations/assets/**/group1.yml` is evaluated when /SERIALNUMBER1.yml is absent, and then `declarations/assets/**.yml` is evaluated when both /SERIALNUMBER1.yml and /group1.yml are absent.
+
+This feature is really useful for defining an assets with different values for each device (e-mail addresses, device certificates, and so on).
+
+### Management properties
+
+Management property definitions are put in `declarations/properties/*.yml`.
+The logic for detecting the yml file is the same as assets.
+
+Note that each key should be appeared in only one property file as is mentioned [in the WWDC2022 movie](https://developer.apple.com/videos/play/wwdc2022/10046?time=1523).
+
+> Multiple management properties declarations can be sent to the device, but the keys should be unique across all of them.
+
+### Re-distribute the declaration after updating it
+
+After updating the declaration, we have to re-distribute the declaration to the devices using `DeclarativeManagement` MDM command.
