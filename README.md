@@ -164,10 +164,11 @@ Activation definitions are put in `declarations/activations/*.yml`.
 type: com.apple.activation.simple
 Predicate: "@status(device.model.family) == 'iPhone'"
 StandardConfigurations:
-  - wifi_12345_profile
-  - apply_status_report_subscription
+  - @configurations/wifi_12345_profile
+  - @configurations/apply_status_report_subscription
 ```
 
+`@configurations/test123` is automatically replaced with the identifier of the configuration defined in `configurations/test123.yml`.
 A device with a serial number 'SERIALNUMBER1' belonging to 'group1' would get all activations defined in
 
 - `declarations/activations/SERIALNUMBER1/**.yml`
