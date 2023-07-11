@@ -32,25 +32,6 @@ module DeclarativeManagement
       end
     end
 
-    class PublicAssetFile
-      def initialize(name:)
-        @name = name
-        @reference_name = "@public/#{name}"
-        @access_url = "#{ENV['MDM_SERVER_BASE_URL']}/mdm/declarative/assets/#{name}"
-      end
-
-      attr_reader :reference_name, :access_url
-
-      def self.all
-        Dir.glob('declarations/public/*').map do |public_asset_file|
-          name = public_asset_file.match(/declarations\/public\/(.*)/)[1]
-          PublicAssetFile.new(
-            name: name,
-          )
-        end
-      end
-    end
-
     class ActivationDefinition
       def initialize(target:, name:, yml:)
         @target = target
@@ -178,6 +159,100 @@ module DeclarativeManagement
       end
     end
 
+    class PublicAssetFile
+      def initialize(target:, name:, path:)
+        @target = target
+        @name = name
+        @reference_name = "@public/#{name}"
+        @access_url = "#{ENV['MDM_SERVER_BASE_URL']}/mdm/declarative/assets/#{PublicAssetFile.digested_path(path)}"
+      end
+
+      attr_reader :reference_name, :access_url
+
+      def self.digested_path(path)
+        # hogehoge.png -> hogehoge.png
+        filename = File.basename(path)
+        if filename == path
+          return filename
+        end
+
+        # hogehoge/SERIALNUMBER1.png -> hogehoge/#{digest(SERIALNUMBER1)}.png
+        ext = File.extname(path)
+        target = File.basename(filename, ext)
+        uuid = Digest::UUID.uuid_v5(Digest::UUID::OID_NAMESPACE, target)
+        File.join(File.dirname(path), "#{uuid}#{ext}")
+      end
+
+      def self.find_path_by_digested_path(digested_path)
+        # hogehoge.png -> hogehoge.png
+        filename = File.basename(digested_path)
+        if filename == digested_path
+          return filename
+        end
+
+        # hogehoge/#{digest(SERIALNUMBER1)}.png -> hogehoge/SERIALNUMBER1.png
+        ext = File.extname(digested_path)
+        uuid = File.basename(filename, ext)
+        Dir.glob(File.join('declarations/public', File.dirname(digested_path), "*#{ext}")).find do |path|
+          target = File.basename(path, ext)
+          Digest::UUID.uuid_v5(Digest::UUID::OID_NAMESPACE, target) == uuid
+        end
+      end
+
+      def self._each
+        Enumerator.new do |out|
+          Dir.glob('declarations/public/*').map do |public_asset_file|
+            next if File.directory?(public_asset_file)
+
+            name = public_asset_file.match(/declarations\/public\/(.*)/)[1]
+            ext = File.extname(name)
+            out << [nil, name, name]
+
+            # detect device/group specific assets.
+            #
+            # base: declarations/public/hogehoge.png
+            # - declarations/public/hogehoge/SERIALNUMBER1.png
+            # - declarations/public/hogehoge/group1.png
+            Dir.glob("declarations/public/#{File.basename(name, ext)}/*#{ext}") do |sub_asset_file|
+              path = sub_asset_file.match(/declarations\/public\/(.*)/)[1]
+              out << [File.basename(path, ext), name, path]
+            end
+          end
+        end
+      end
+
+      def self.all
+        _each.map do |target, name, path|
+          PublicAssetFile.new(target: target, name: name, path: path)
+        end
+      end
+
+      def self.for(serial_number)
+        groups = DeviceGroup.including(serial_number)
+        group_names = groups.map(&:name)
+        group_names.sort!
+        # smaller is higher priority
+        priorities = { nil => group_names.size, serial_number => -1 }.merge(group_names.each_with_index.to_h)
+        group_by_name = {}
+        _each.each do |target, name, path|
+          if group_names.include?(target) || target == serial_number || target.nil?
+            priority = priorities[target]
+            if (existing = group_by_name[name])
+              if priority < priorities[existing.first]
+                group_by_name[name] = [target, path]
+              end
+            else
+              group_by_name[name] = [target, path]
+            end
+          end
+        end
+        group_by_name.map do |name, definition|
+          target, path = definition
+          PublicAssetFile.new(target: target, name: name, path: path)
+        end
+      end
+    end
+
     class PropertyDefinition
       def initialize(target:, name:, yml:)
         @target = target
@@ -256,7 +331,7 @@ module DeclarativeManagement
           @reference_map[definition.identifier.reference_name] = definition
         end
         @public_asset_file_map = {}
-        PublicAssetFile.all.each do |public_asset_file|
+        PublicAssetFile.for(serial_number).each do |public_asset_file|
           @public_asset_file_map[public_asset_file.reference_name] = public_asset_file.access_url
         end
 

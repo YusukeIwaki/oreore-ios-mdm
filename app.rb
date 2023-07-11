@@ -62,6 +62,17 @@ class MdmServer < Sinatra::Base
     send_file File.join('declarations/public', params[:file])
   end
 
+  get '/mdm/declarative/assets/:file/:digest' do
+    verbose_print_request
+    found = DeclarativeManagement::Declaration::PublicAssetFile.find_path_by_digested_path(File.join(params[:file], params[:digest]))
+
+    unless found
+      halt 404, 'Not found'
+    end
+
+    send_file found
+  end
+
   put '/mdm/checkin' do
     verbose_print_request
 
