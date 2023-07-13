@@ -4,7 +4,7 @@
   @command_requests = MdmCommandRequest.where(mdm_device: @device)
   @command_handling_requests = MdmCommandHandlingRequest.where(mdm_device: @device)
   @command_histories = MdmCommandHistory.where(mdm_device: @device).select(:command_uuid, :request_type, :created_at)
-  @synchronization_request_histories = DeclarativeManagement::SynchronizationRequestHistory.where(mdm_device: @device).select(:id, :endpoint, :created_at)
+  @synchronization_request_histories = DeclarativeManagement::SynchronizationRequestHistory.where(mdm_device: @device).select(:id, :endpoint, :created_at).order(id: :asc)
 %>
 
 <div class="container">
@@ -122,7 +122,7 @@
   <h2>DeclarativeManagement Synchronization History</h2>
   <% if @synchronization_request_histories.present? %>
   <div class="list-group">
-  <% @synchronization_request_histories.last(10).each do |synchronization_request_history| %>
+  <% @synchronization_request_histories.last(100).each do |synchronization_request_history| %>
     <a href="/devices/<%= @device.udid %>/synchronization_request_histories/<%= synchronization_request_history.id %>" class="list-group-item list-group-item-action">
     <%= synchronization_request_history.endpoint %> - (<%= synchronization_request_history.created_at %>)
     </a>
