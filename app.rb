@@ -11,8 +11,27 @@ require 'sinatra/base'
 Tilt.register('rb', Tilt::RubyTemplate)
 Sinatra::Templates.prepend(SinatraTemplatesExtension)
 
+class FixContentTypeMiddleware
+  def initialize(app)
+    @app = app
+  end
+
+  def call(env)
+    if env['REQUEST_PATH'] == '/mdm-byod/enroll'
+      # iOS 15 is buggy. It sends Content-Type: application/x-www-form-urlencoded
+      # and Rack raises errors Invalid query parameters: invalid %-encoding.
+      if env['CONTENT_TYPE'] == 'application/x-www-form-urlencoded'
+        # just avoid it by rewriting Content-Type
+        env['CONTENT_TYPE'] = 'application/pkcs7-signature'
+      end
+    end
+    @app.call(env)
+  end
+end
+
 class MdmServer < Sinatra::Base
   use SinatraStdoutLogging
+  use FixContentTypeMiddleware
 
   helpers do
     def verbose_print_request
@@ -180,6 +199,100 @@ class MdmServer < Sinatra::Base
   end
 end
 
+
+class MdmByodServer < Sinatra::Base
+  use SinatraStdoutLogging
+  use FixContentTypeMiddleware
+
+  helpers do
+    def authorized_account
+      return @authorized_account if @authorized_account
+
+      m = request.env['HTTP_AUTHORIZATION']&.match(/\ABearer (.+)\z/)
+      return nil unless m
+
+      token = ManagedAppleAccountAccessToken.find_by(token: m[1])
+      if token.expired?
+        token.destroy!
+        return nil
+      end
+
+      @authorized_account = token.managed_apple_account
+    end
+
+    def authorized_account_required
+      unless authorized_account
+        realm = {
+          method: 'apple-as-web',
+          url: "#{ENV['MDM_SERVER_BASE_URL']}/mdm-byod/authenticate",
+        }.map { |k, v| "#{k}=\"#{v}\"" }.join(', ')
+
+        halt 401, { 'WWW-Authenticate' => "Bearer #{realm}" }, 'Unauthorized'
+      end
+    end
+  end
+
+  # https://developer.apple.com/documentation/devicemanagement/user_enrollment/onboarding_users_with_account_sign-in/implementing_the_simple_authentication_user-enrollment_flow
+  post '/mdm-byod/enroll' do
+    authorized_account_required
+    content_type 'application/x-apple-aspen-config'
+    rb :'mdm-byod.mobileconfig', locals: { assigned_managed_apple_id: authorized_account.email }
+  end
+
+  # accessed via WebView.
+  get '/mdm-byod/authenticate' do
+    erb :'mdm-byod/authenticate.html'
+  end
+
+  # accessed via WebView.
+  post '/mdm-byod/authenticate' do
+    account = ManagedAppleAccount.find_by!(email: params[:email])
+
+    if params[:password] == 'password!'
+      token = SecureRandom.hex(24)
+      account.access_tokens.first_or_initialize.update!(token: token)
+
+      url = "apple-remotemanagement-user-login://authentication-results?access-token=#{token}"
+      halt 308, { 'Location' => url }, 'Redirect'
+    end
+
+    @error = 'Invalid password'
+    erb :'mdm-byod/authenticate.html'
+  end
+
+  put '/mdm-byod/checkin' do
+    authorized_account_required
+
+    plist = Plist.parse_xml(request.body.read, marshal: false)
+
+    if plist['MessageType'] == 'GetToken'
+      # https://developer.apple.com/documentation/devicemanagement/get_token
+      halt 400, 'Not supported yet'
+    end
+
+    if plist.delete('Topic') != PushCertificate.from_env.topic
+      halt 403, 'Topic mismatch'
+    end
+
+    message_handler =
+      case plist['MessageType']
+      when 'Authenticate'
+        ByodCheckinRequest::AuthenticateMessageHandler.new(plist)
+      when 'TokenUpdate'
+        ByodCheckinRequest::TokenUpdateMessageHandler.new(plist)
+      when 'CheckOut'
+        ByodCheckinRequest::CheckOutMessageHandler.new(plist)
+      else
+        raise 'Unknown MessageType'
+      end
+
+    message_handler.handle
+
+    content_type 'text/plain'
+    'OK'
+  end
+end
+
 class SimpleAdminConsole < Sinatra::Base
   enable :sessions
   if ENV['GITHUB_CLIENT_ID'].present?
@@ -320,5 +433,6 @@ end
 
 class App < Sinatra::Base
   use MdmServer
+  use MdmByodServer
   use SimpleAdminConsole
 end

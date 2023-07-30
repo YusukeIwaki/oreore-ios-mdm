@@ -195,3 +195,13 @@ Note that each key should be appeared in only one property file as is mentioned 
 ### Re-distribute the declaration after updating it
 
 After updating the declaration, we have to re-distribute the declaration to the devices using `DeclarativeManagement` MDM command.
+
+## Example app for User Enrollment
+
+```
+ruby testaccount.rb
+```
+
+will launch a test server with Sinatra, just for serving `.well-known/com.apple.remotemanagement`.
+
+Note that this test server requires `MDM_SERVER_BASE_URL` environment variable set.
