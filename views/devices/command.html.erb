@@ -1,6 +1,6 @@
 <%
   @device = MdmDevice.find_by!(udid: params[:udid])
-  @command_history = MdmCommandHistory.find_by!(mdm_device: @device, command_uuid: params[:command_uuid])
+  @command_history = CommandQueue.for_device(@device).command_histories.find_by!(command_uuid: params[:command_uuid])
 %>
 
 <div class="container">

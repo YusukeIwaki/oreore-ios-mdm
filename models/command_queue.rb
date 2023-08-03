@@ -10,6 +10,18 @@ class CommandQueue
     @mdm_device_id = mdm_device_id
   end
 
+  def command_requests
+    MdmCommandRequest.where(mdm_device_id: @mdm_device_id)
+  end
+
+  def command_handling_requests
+    MdmCommandHandlingRequest.where(mdm_device_id: @mdm_device_id)
+  end
+
+  def command_histories
+    MdmCommandHistory.where(mdm_device_id: @mdm_device_id)
+  end
+
   # @param [Command|MdmCommandHandlingRequest] command
   def <<(command)
     MdmCommandRequest.create!(

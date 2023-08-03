@@ -1,9 +1,10 @@
 <%
   @device = MdmDevice.find_by!(udid: params[:udid])
 
-  @command_requests = MdmCommandRequest.where(mdm_device: @device)
-  @command_handling_requests = MdmCommandHandlingRequest.where(mdm_device: @device)
-  @command_histories = MdmCommandHistory.where(mdm_device: @device).select(:command_uuid, :request_type, :created_at)
+  command_queue = CommandQueue.for_device(@device)
+  @command_requests = command_queue.command_requests
+  @command_handling_requests = command_queue.command_handling_requests
+  @command_histories = command_queue.command_histories.select(:command_uuid, :request_type, :created_at)
   @synchronization_request_histories = DeclarativeManagement::SynchronizationRequestHistory.where(mdm_device: @device).select(:id, :endpoint, :created_at).order(id: :asc)
 %>
 
