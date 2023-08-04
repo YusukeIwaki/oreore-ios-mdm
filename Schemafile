@@ -48,31 +48,31 @@ add_index "mdm_push_endpoints",
   using: :btree
 
 create_table "mdm_command_requests", force: :cascade do |t|
-  t.bigint "mdm_device_id"
+  t.string 'device_identifier', null: false
   t.text "request_payload", null: false
   t.datetime "created_at", null: false
 end
 
 add_index "mdm_command_requests",
-  ["mdm_device_id"],
-  name: "index_mdm_command_requests_mdm_device_id",
+  ["device_identifier"],
+  name: "index_mdm_command_requests_device_identifier",
   using: :btree
 
 create_table "mdm_command_handling_requests", force: :cascade do |t|
-  t.bigint "mdm_device_id"
+  t.string 'device_identifier', null: false
   t.string "command_uuid", null: false
   t.text "request_payload", null: false
   t.datetime "created_at", null: false
 end
 
 add_index "mdm_command_handling_requests",
-  ["mdm_device_id", "command_uuid"],
-  name: "index_mdm_command_handling_requests_mdm_device_id_command_uuid",
+  ["device_identifier", "command_uuid"],
+  name: "index_mdm_command_handling_requests_device_identifier_command",
   unique: true,
   using: :btree
 
 create_table "mdm_command_histories", force: :cascade do |t|
-  t.bigint "mdm_device_id"
+  t.string 'device_identifier', null: false
   t.string "request_type", null: false
   t.string "command_uuid", null: false
   t.text "request_payload", null: false
@@ -81,8 +81,8 @@ create_table "mdm_command_histories", force: :cascade do |t|
 end
 
 add_index "mdm_command_histories",
-  ["mdm_device_id", "command_uuid"],
-  name: "index_command_histories_mdm_device_id_command_uuid",
+  ["device_identifier", "command_uuid"],
+  name: "index_command_histories_device_identifier_command_uuid",
   unique: true,
   using: :btree
 
@@ -141,9 +141,15 @@ add_index 'managed_apple_account_access_tokens',
   using: :btree
 
 create_table 'byod_devices', force: :cascade do |t|
+  t.bigint :managed_apple_account_id, null: false
   t.string :enrollment_id, null: false
   t.datetime 'created_at', null: false
 end
+
+add_index 'byod_devices',
+  ['managed_apple_account_id'],
+  name: 'index_byod_devices_managed_apple_account_id',
+  using: :btree
 
 add_index 'byod_devices',
   ['enrollment_id'],

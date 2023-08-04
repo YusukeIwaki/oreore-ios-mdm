@@ -16,11 +16,12 @@ class PushClient
     attr_reader :status, :body
   end
 
+  # @param [MdmPushEndpoint|ByodPushEndpoint] push_endpoint
   # @return [Response]
-  def send_mdm_notification(mdm_push_endpoint)
+  def send_mdm_notification(push_endpoint)
     notification = Apnotic::MdmNotification.new(
-                    token: mdm_push_endpoint.token,
-                    push_magic: mdm_push_endpoint.push_magic)
+                    token: push_endpoint.token,
+                    push_magic: push_endpoint.push_magic)
     @apnotic_connection.push(notification)
   end
 end

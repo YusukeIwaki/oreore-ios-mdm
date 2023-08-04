@@ -1,10 +1,8 @@
 <%
-  @device = MdmDevice.find_by!(udid: params[:udid])
-  @command_history = CommandQueue.for_device(@device).command_histories.find_by!(command_uuid: params[:command_uuid])
+  @command_history = MdmCommandHistory.find_by!(command_uuid: params[:command_uuid])
 %>
 
 <div class="container">
-  <h1>Device - <%= @device.udid %></h1>
   <h2>Command - <%= params[:command_uuid] %></h2>
 
   <h3>Request</h3>

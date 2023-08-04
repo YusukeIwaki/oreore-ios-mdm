@@ -3,39 +3,46 @@ class CommandQueue
     unless mdm_device.is_a?(MdmDevice)
       raise ArgumentError, "mdm_device must be a MdmDevice, but was #{mdm_device.class}"
     end
-    new(mdm_device.id)
+    new(mdm_device.udid)
   end
 
-  def initialize(mdm_device_id)
-    @mdm_device_id = mdm_device_id
+  def self.for_byod_device(byod_device)
+    unless byod_device.is_a?(ByodDevice)
+      raise ArgumentError, "byod_device must be a ByodDevice, but was #{byod_device.class}"
+    end
+    new(byod_device.enrollment_id)
+  end
+
+  def initialize(device_identifier)
+    @device_identifier = device_identifier
   end
 
   def command_requests
-    MdmCommandRequest.where(mdm_device_id: @mdm_device_id)
+    MdmCommandRequest.where(device_identifier: @device_identifier)
   end
 
   def command_handling_requests
-    MdmCommandHandlingRequest.where(mdm_device_id: @mdm_device_id)
+    MdmCommandHandlingRequest.where(device_identifier: @device_identifier)
   end
 
   def command_histories
-    MdmCommandHistory.where(mdm_device_id: @mdm_device_id)
+    MdmCommandHistory.where(device_identifier: @device_identifier)
   end
 
   # @param [Command|MdmCommandHandlingRequest] command
   def <<(command)
     MdmCommandRequest.create!(
-      mdm_device_id: @mdm_device_id,
+      device_identifier: @device_identifier,
       request_payload: command.request_payload,
     )
   end
 
-  def self.bulk_insert(mdm_device_ids, commands)
+  def self.bulk_insert(device_identifiers, commands)
     request_payloads = commands.map(&:request_payload)
     MdmCommandRequest.insert_all!(
-      mdm_device_ids.product(request_payloads).map do |mdm_device_id, request_payload|
+      device_identifiers.product(request_payloads).map do |device_identifier, request_payload|
         {
-          mdm_device_id: mdm_device_id,
+          device_identifier: device_identifier,
           request_payload: request_payload,
         }
       end
@@ -43,12 +50,12 @@ class CommandQueue
   end
 
   def dequeue
-    mdm_command_request = MdmCommandRequest.find_by(mdm_device_id: @mdm_device_id)
+    mdm_command_request = MdmCommandRequest.find_by(device_identifier: @device_identifier)
     return nil unless mdm_command_request
 
     MdmCommandRequest.transaction do
       MdmCommandHandlingRequest.create!(
-        mdm_device_id: mdm_command_request.mdm_device_id,
+        device_identifier: mdm_command_request.device_identifier,
         command_uuid: mdm_command_request.request_payload['CommandUUID'],
         request_payload: mdm_command_request.request_payload,
       )
@@ -60,19 +67,19 @@ class CommandQueue
 
   def dequeue_handling_request(command_uuid:)
     MdmCommandHandlingRequest.find_by!(
-      mdm_device_id: @mdm_device_id,
+      device_identifier: @device_identifier,
       command_uuid: command_uuid,
     ).tap(&:destroy!)
   end
 
   def size
-    MdmCommandRequest.where(mdm_device_id: @mdm_device_id).count
+    MdmCommandRequest.where(device_identifier: @device_identifier).count
   end
 
   def clear
     MdmCommandRequest.transaction do
-      MdmCommandRequest.where(mdm_device_id: @mdm_device_id).destroy_all
-      MdmCommandHandlingRequest.where(mdm_device_id: @mdm_device_id).destroy_all
+      MdmCommandRequest.where(device_identifier: @device_identifier).destroy_all
+      MdmCommandHandlingRequest.where(device_identifier: @device_identifier).destroy_all
     end
   end
 end

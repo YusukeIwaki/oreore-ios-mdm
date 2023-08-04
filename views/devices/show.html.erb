@@ -1,10 +1,7 @@
 <%
   @device = MdmDevice.find_by!(udid: params[:udid])
 
-  command_queue = CommandQueue.for_device(@device)
-  @command_requests = command_queue.command_requests
-  @command_handling_requests = command_queue.command_handling_requests
-  @command_histories = command_queue.command_histories.select(:command_uuid, :request_type, :created_at)
+  @command_queue = CommandQueue.for_device(@device)
   @synchronization_request_histories = DeclarativeManagement::SynchronizationRequestHistory.where(mdm_device: @device).select(:id, :endpoint, :created_at).order(id: :asc)
 %>
 
@@ -34,91 +31,10 @@
     <button type="submit" class="btn btn-outline-primary">Request fetching commands</button>
   </form>
 
-  <% if @command_requests.present? %>
-  <ul class="list-group">
-    <% @command_requests.each do |command_request| %>
-    <li class="list-group-item">
-    <%= JSON.pretty_generate(command_request.request_payload) %>
-    <%= command_request.created_at %>
-    </li>
-    <% end %>
-  </ul>
-  <% else %>
-  No commands.
-  <% end %>
-
-  <h3>Handling</h3>
-  <% if @command_handling_requests.present? %>
-  <ul class="list-group">
-    <% @command_handling_requests.each do |command_handling_request| %>
-    <li class="list-group-item">
-    <%= JSON.pretty_generate(command_handling_request.request_payload) %>
-    <%= command_handling_request.created_at %>
-    </li>
-    <% end %>
-  </ul>
-  <% else %>
-  No commands.
-  <% end %>
-
-  <script type="text/javascript">
-  function request(method, url, form) {
-    return new Promise(function(resolve, reject) {
-      let req = new XMLHttpRequest();
-      req.open(method, url);
-
-      req.onload = function() {
-        if (req.status == 200) {
-          resolve(req.response);
-        }
-        else {
-          reject(Error(req.statusText));
-        }
-      };
-
-      req.onerror = () => {
-        reject(Error("ERROR"));
-      };
-
-      req.send(form);
-    });
-  }
-
-  let selectTemplate = document.getElementById('select_template')
-  selectTemplate.addEventListener('change', (event) => {
-    let payload = document.getElementById('input_payload')
-    let selected = event.target.value
-    if (selected == 'DeclarativeManagement') {
-      let form = new FormData()
-      form.append('class', 'DeclarativeManagement')
-      form.append('udid', '<%= @device.udid %>')
-      request('POST', '/commands/template.txt', form).then((response) => {
-        payload.innerHTML = response.trim()
-      })
-      return
-    }
-    if (!!selected) {
-      let form = new FormData()
-      form.append('class', selected)
-      request('POST', '/commands/template.txt', form).then((response) => {
-        payload.innerHTML = response.trim()
-      })
-    }
-  })
-  </script>
-
-  <h2>Command History</h2>
-  <% if @command_histories.present? %>
-  <div class="list-group">
-  <% @command_histories.last(10).each do |command_history| %>
-    <a href="/devices/<%= @device.udid %>/commands/<%= command_history.command_uuid %>" class="list-group-item list-group-item-action">
-    <%= command_history.request_type %> - <%= command_history.command_uuid %> (<%= command_history.created_at %>)
-    </a>
-  <% end %>
-  </div>
-  <% else %>
-  no histories
-  <% end %>
+  <%= erb :'devices/_command_queue.html', locals: {
+    command_queue: @command_queue,
+    declarativemanagement_device_identifier: @device.serial_number,
+  } %>
 
   <h2>DeclarativeManagement Synchronization History</h2>
   <% if @synchronization_request_histories.present? %>

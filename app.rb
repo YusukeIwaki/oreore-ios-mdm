@@ -170,7 +170,7 @@ class MdmServer < Sinatra::Base
     end
 
     # Additional response handling here.
-    if ['Acknowledged', 'Error'].include?(status) && (request_type = handling_request.request_payload.dig('Command', 'RequestType'))
+    if ['Acknowledged', 'Error'].include?(status) && handling_request && (request_type = handling_request.request_payload.dig('Command', 'RequestType'))
       if (handler_klass = CommandResponseHandler.const_get("#{request_type}#{status}") rescue nil)
         if status == 'Error'
           handler_klass.new(udid, plist['ErrorChain']).handle
@@ -212,6 +212,8 @@ class MdmByodServer < Sinatra::Base
       return nil unless m
 
       token = ManagedAppleAccountAccessToken.find_by(token: m[1])
+      return nil unless token
+
       if token.expired?
         token.destroy!
         return nil
@@ -280,11 +282,11 @@ class MdmByodServer < Sinatra::Base
     message_handler =
       case plist['MessageType']
       when 'Authenticate'
-        ByodCheckinRequest::AuthenticateMessageHandler.new(plist)
+        ByodCheckinRequest::AuthenticateMessageHandler.new(authorized_account, plist)
       when 'TokenUpdate'
-        ByodCheckinRequest::TokenUpdateMessageHandler.new(plist)
+        ByodCheckinRequest::TokenUpdateMessageHandler.new(authorized_account, plist)
       when 'CheckOut'
-        ByodCheckinRequest::CheckOutMessageHandler.new(plist)
+        ByodCheckinRequest::CheckOutMessageHandler.new(authorized_account, plist)
       else
         raise 'Unknown MessageType'
       end
@@ -293,6 +295,61 @@ class MdmByodServer < Sinatra::Base
 
     content_type 'text/plain'
     'OK'
+  end
+
+  put '/mdm-byod/command' do
+    authorized_account_required
+
+    plist = Plist.parse_xml(request.body.read, marshal: false)
+    enrollment_id = plist['EnrollmentID']
+    status = plist['Status']
+
+    if !enrollment_id || !status
+      halt 400, 'Bad request'
+    end
+
+    device = ByodDevice.find_by!(enrollment_id: enrollment_id)
+    command_queue = CommandQueue.for_byod_device(device)
+    command_uuid = plist['CommandUUID']
+
+    unless status == 'Idle'
+      begin
+        handling_request = command_queue.dequeue_handling_request(command_uuid: command_uuid)
+        MdmCommandHistory.log_result(handling_request, plist)
+      rescue ActiveRecord::RecordNotFound
+        # iOS sometimes retry MDM response.
+        # Just ignore if CommandUUID is already handled and not in DB.
+        logger.warn("CommandUUID not in DB: #{plist}")
+      end
+    end
+
+    # Additional response handling here.
+    if ['Acknowledged', 'Error'].include?(status) && handling_request && (request_type = handling_request.request_payload.dig('Command', 'RequestType'))
+      if (handler_klass = ByodCommandResponseHandler.const_get("#{request_type}#{status}") rescue nil)
+        if status == 'Error'
+          handler_klass.new(enrollment_id, plist['ErrorChain']).handle
+        else
+          response_payload = plist.reject do |key, value|
+            %w[Status UDID CommandUUID ErrorChain].include?(key)
+          end
+          handler_klass.new(enrollment_id, response_payload).handle
+        end
+      end
+    end
+
+    command = command_queue.dequeue
+
+    if status == 'NotNow' && handling_request
+      command_queue << handling_request
+    end
+
+    logger.info("command: #{command || 'nil'}")
+    if command
+      content_type 'application/xml'
+      body command.to_plist
+    else
+      200
+    end
   end
 end
 
@@ -387,19 +444,19 @@ class SimpleAdminConsole < Sinatra::Base
     erb :'devices/show.html'
   end
 
-  get '/devices/:udid/commands/:command_uuid' do
-    login_required
-    erb :'devices/command.html'
-  end
-
   get '/devices/:udid/synchronization_request_histories/:id' do
     login_required
     erb :'devices/synchronization_request_history.html'
   end
 
+  get '/commands/:command_uuid' do
+    login_required
+    erb :'mdm_command_history.html'
+  end
+
   post '/commands/template.txt' do
     if params[:class] == 'DeclarativeManagement'
-      declaration = DeclarativeManagement::Declaration.new(params[:udid])
+      declaration = DeclarativeManagement::Declaration.new(params[:declarativemanagement_device_identifier])
       command = Command::DeclarativeManagement.new(tokens: declaration.tokens)
       command.request_payload.to_plist
     elsif params[:class] && Command.const_defined?(params[:class])
@@ -425,6 +482,28 @@ class SimpleAdminConsole < Sinatra::Base
     push_result = PushClient.new.send_mdm_notification(mdm_push_endpoint)
     puts "push_result: #{push_result.inspect}"
     redirect "/devices/#{params[:udid]}"
+  end
+
+  get '/byod/devices/:enrollment_id' do
+    login_required
+    erb :'byod/devices/show.html'
+  end
+
+  post '/byod/devices/:enrollment_id/commands' do
+    login_required
+    if params[:payload].present?
+      command = Data.define(:request_payload).new(request_payload: Plist.parse_xml(params[:payload], marshal: false))
+      CommandQueue.for_byod_device(ByodDevice.find_by!(enrollment_id: params[:enrollment_id])) << command
+    end
+    redirect "/byod/devices/#{params[:enrollment_id]}"
+  end
+
+  post '/byod/devices/:enrollment_id/push' do
+    login_required
+    byod_push_endpoint = ByodDevice.find_by!(enrollment_id: params[:enrollment_id]).byod_push_endpoint
+    push_result = PushClient.new.send_mdm_notification(byod_push_endpoint)
+    puts "push_result: #{push_result.inspect}"
+    redirect "/byod/devices/#{params[:enrollment_id]}"
   end
 
   get '/device_groups/:id' do
