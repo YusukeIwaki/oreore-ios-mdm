@@ -1,5 +1,9 @@
 <h1>BYOD authentication</h1>
 
+<% params['user-identifier'].try! do |email| %>
+<p>Enrollment request from <%= email %></p>
+<% end %>
+
 <% if params[:email].blank? %>
 
 <div class="list-group m-3">

@@ -241,6 +241,9 @@ class MdmByodServer < Sinatra::Base
 
   # accessed via WebView.
   get '/mdm-byod/authenticate' do
+    email = params['user-identifier']
+    logger.info "Enrollment request with email=#{email}"
+
     erb :'mdm-byod/authenticate.html'
   end
 
