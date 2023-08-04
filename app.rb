@@ -173,12 +173,12 @@ class MdmServer < Sinatra::Base
     if ['Acknowledged', 'Error'].include?(status) && handling_request && (request_type = handling_request.request_payload.dig('Command', 'RequestType'))
       if (handler_klass = CommandResponseHandler.const_get("#{request_type}#{status}") rescue nil)
         if status == 'Error'
-          handler_klass.new(udid, plist['ErrorChain']).handle
+          handler_klass.new(device, plist['ErrorChain']).handle
         else
           response_payload = plist.reject do |key, value|
             %w[Status UDID CommandUUID ErrorChain].include?(key)
           end
-          handler_klass.new(udid, response_payload).handle
+          handler_klass.new(device, response_payload).handle
         end
       end
     end
@@ -327,12 +327,12 @@ class MdmByodServer < Sinatra::Base
     if ['Acknowledged', 'Error'].include?(status) && handling_request && (request_type = handling_request.request_payload.dig('Command', 'RequestType'))
       if (handler_klass = ByodCommandResponseHandler.const_get("#{request_type}#{status}") rescue nil)
         if status == 'Error'
-          handler_klass.new(enrollment_id, plist['ErrorChain']).handle
+          handler_klass.new(device, plist['ErrorChain']).handle
         else
           response_payload = plist.reject do |key, value|
             %w[Status UDID CommandUUID ErrorChain].include?(key)
           end
-          handler_klass.new(enrollment_id, response_payload).handle
+          handler_klass.new(device, response_payload).handle
         end
       end
     end
