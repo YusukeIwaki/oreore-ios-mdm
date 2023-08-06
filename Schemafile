@@ -141,19 +141,30 @@ add_index 'managed_apple_account_access_tokens',
   using: :btree
 
 create_table 'byod_devices', force: :cascade do |t|
-  t.bigint :managed_apple_account_id, null: false
   t.string :enrollment_id, null: false
   t.datetime 'created_at', null: false
 end
 
 add_index 'byod_devices',
-  ['managed_apple_account_id'],
-  name: 'index_byod_devices_managed_apple_account_id',
-  using: :btree
-
-add_index 'byod_devices',
   ['enrollment_id'],
   name: 'index_byod_devices_enrollment_id',
+  unique: true,
+  using: :btree
+
+create_table 'managed_apple_account_access_token_usages' do |t|
+  t.bigint :managed_apple_account_access_token_id, null: false
+  t.string :enrollment_id, null: false
+end
+
+add_index 'managed_apple_account_access_token_usages',
+  ['enrollment_id'],
+  name: 'index_managed_apple_account_access_token_usages_enrollment_id',
+  unique: true,
+  using: :btree
+
+add_index 'managed_apple_account_access_token_usages',
+  ['managed_apple_account_access_token_id'],
+  name: 'index_managed_apple_account_access_token_usages_token_id',
   unique: true,
   using: :btree
 

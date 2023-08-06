@@ -16,7 +16,7 @@ module ByodCheckinRequest
   # </dict>
   # </plist>
   class AuthenticateMessageHandler
-    def initialize(managed_apple_account, plist)
+    def initialize(plist)
       @plist = plist
     end
 

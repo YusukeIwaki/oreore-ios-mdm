@@ -18,8 +18,7 @@ module ByodCheckinRequest
   # </dict>
   # </plist>
   class TokenUpdateMessageHandler
-    def initialize(managed_apple_account, plist)
-      @managed_apple_account = managed_apple_account
+    def initialize(plist)
       @plist = plist
     end
 
@@ -27,7 +26,6 @@ module ByodCheckinRequest
       byod_device = ByodDevice.find_by(enrollment_id: enrollment_id)
       if byod_device
         ActiveRecord::Base.transaction do
-          byod_device.update!(managed_apple_account: @managed_apple_account)
           byod_device.byod_push_endpoint.update!(
             token: token,
             push_magic: push_magic,
@@ -35,10 +33,7 @@ module ByodCheckinRequest
         end
       else
         ActiveRecord::Base.transaction do
-          mdm_device = ByodDevice.create!(
-            managed_apple_account: @managed_apple_account,
-            enrollment_id: enrollment_id,
-          )
+          mdm_device = ByodDevice.create!(enrollment_id: enrollment_id)
           mdm_device.create_byod_push_endpoint!(
             token: token,
             push_magic: push_magic,

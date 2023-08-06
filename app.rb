@@ -17,7 +17,7 @@ class FixContentTypeMiddleware
   end
 
   def call(env)
-    if env['REQUEST_PATH'] == '/mdm-byod/enroll'
+    if env['PATH_INFO'] == '/mdm-byod/enroll'
       # iOS 15 is buggy. It sends Content-Type: application/x-www-form-urlencoded
       # and Rack raises errors Invalid query parameters: invalid %-encoding.
       if env['CONTENT_TYPE'] == 'application/x-www-form-urlencoded'
@@ -205,8 +205,9 @@ class MdmByodServer < Sinatra::Base
   use FixContentTypeMiddleware
 
   helpers do
-    def authorized_account
-      return @authorized_account if @authorized_account
+    # Get access_token from Authorization Header. The result access token can be expired.
+    def current_access_token
+      return @current_access_token if @current_access_token
 
       m = request.env['HTTP_AUTHORIZATION']&.match(/\ABearer (.+)\z/)
       return nil unless m
@@ -214,23 +215,30 @@ class MdmByodServer < Sinatra::Base
       token = ManagedAppleAccountAccessToken.find_by(token: m[1])
       return nil unless token
 
-      if token.expired?
-        token.destroy!
-        return nil
-      end
+      @current_access_token = token
+    end
 
-      @authorized_account = token.managed_apple_account
+    def authorized_account
+      current_access_token.try! do |token|
+        if token.expired?
+          nil
+        else
+          token.managed_apple_account
+        end
+      end
     end
 
     def authorized_account_required
-      unless authorized_account
-        realm = {
-          method: 'apple-as-web',
-          url: "#{ENV['MDM_SERVER_BASE_URL']}/mdm-byod/authenticate",
-        }.map { |k, v| "#{k}=\"#{v}\"" }.join(', ')
+      redirect_to_authenticate_url unless authorized_account
+    end
 
-        halt 401, { 'WWW-Authenticate' => "Bearer #{realm}" }, 'Unauthorized'
-      end
+    def redirect_to_authenticate_url
+      realm = {
+        method: 'apple-as-web',
+        url: "#{ENV['MDM_SERVER_BASE_URL']}/mdm-byod/authenticate",
+      }.map { |k, v| "#{k}=\"#{v}\"" }.join(', ')
+
+      halt 401, { 'WWW-Authenticate' => "Bearer #{realm}" }, 'Unauthorized'
     end
   end
 
@@ -255,7 +263,7 @@ class MdmByodServer < Sinatra::Base
 
     if params[:password] == 'password!'
       token = SecureRandom.hex(24)
-      account.access_tokens.first_or_initialize.update!(token: token)
+      account.access_tokens.create!(token: token)
 
       url = "apple-remotemanagement-user-login://authentication-results?access-token=#{token}"
       halt 308, { 'Location' => url }, 'Redirect'
@@ -266,8 +274,6 @@ class MdmByodServer < Sinatra::Base
   end
 
   put '/mdm-byod/checkin' do
-    authorized_account_required
-
     plist = Plist.parse_xml(request.body.read, marshal: false)
 
     if plist['MessageType'] == 'GetToken'
@@ -275,18 +281,40 @@ class MdmByodServer < Sinatra::Base
       halt 400, 'Not supported yet'
     end
 
+    if plist['MessageType'] == 'CheckOut' && current_access_token
+      begin
+        # Check if the access token is used by the device,
+        # since CheckOut request cannot handle 401.
+        ManagedAppleAccountAccessTokenUsage.find_by!(
+          managed_apple_account_access_token: current_access_token,
+          enrollment_id: plist['EnrollmentID'],
+        )
+      rescue ActiveRecord::RecordNotFound
+        redirect_to_authenticate_url
+      end
+    else
+      authorized_account_required
+    end
+
     if plist.delete('Topic') != PushCertificate.from_env.topic
       halt 403, 'Topic mismatch'
+    end
+
+    if plist['EnrollmentID'].present?
+      # Record usage and block access from other devices.
+      ManagedAppleAccountAccessTokenUsage.
+        find_or_initialize_by(enrollment_id: plist['EnrollmentID']).
+        update!(managed_apple_account_access_token: current_access_token)
     end
 
     message_handler =
       case plist['MessageType']
       when 'Authenticate'
-        ByodCheckinRequest::AuthenticateMessageHandler.new(authorized_account, plist)
+        ByodCheckinRequest::AuthenticateMessageHandler.new(plist)
       when 'TokenUpdate'
-        ByodCheckinRequest::TokenUpdateMessageHandler.new(authorized_account, plist)
+        ByodCheckinRequest::TokenUpdateMessageHandler.new(plist)
       when 'CheckOut'
-        ByodCheckinRequest::CheckOutMessageHandler.new(authorized_account, plist)
+        ByodCheckinRequest::CheckOutMessageHandler.new(plist)
       else
         raise 'Unknown MessageType'
       end
@@ -307,6 +335,11 @@ class MdmByodServer < Sinatra::Base
     if !enrollment_id || !status
       halt 400, 'Bad request'
     end
+
+    # Record usage and block access from other devices.
+    ManagedAppleAccountAccessTokenUsage.
+      find_or_initialize_by(enrollment_id: enrollment_id).
+      update!(managed_apple_account_access_token: current_access_token)
 
     device = ByodDevice.find_by!(enrollment_id: enrollment_id)
     command_queue = CommandQueue.for_byod_device(device)

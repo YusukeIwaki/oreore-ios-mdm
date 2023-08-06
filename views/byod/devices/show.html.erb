@@ -7,6 +7,11 @@
 <div class="container">
   <h1>Device - <%= @device.enrollment_id %></h1>
 
+  <h2>access token</h2>
+  <div class="card p-2 mb-4">
+  <pre><%= ERB::Util.h(JSON.pretty_generate(@device.managed_apple_account_access_token&.attributes || {})) %></pre>
+  </div>
+
   <h2>Commands</h2>
   <form action="/byod/devices/<%= @device.enrollment_id %>/commands" class="card p-2" method="post">
     <select class="form-select form-select-sm mb-3" id="select_template">
@@ -28,6 +33,6 @@
 
   <%= erb :'devices/_command_queue.html', locals: {
     command_queue: @command_queue,
-    declarativemanagement_device_identifier: @device.managed_apple_account.email_local_part,
+    declarativemanagement_device_identifier: @device.managed_apple_account&.email_local_part,
   } %>
 </div>

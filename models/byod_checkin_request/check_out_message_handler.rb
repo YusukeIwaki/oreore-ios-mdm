@@ -10,7 +10,7 @@ module ByodCheckinRequest
   # </dict>
   # </plist>
   class CheckOutMessageHandler
-    def initialize(managed_apple_account, plist)
+    def initialize(plist)
       @plist = plist
     end
 
