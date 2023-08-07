@@ -1,0 +1,38 @@
+<h1>BYOD authentication</h1>
+
+<% params['user-identifier'].try! do |email| %>
+<p>Enrollment request from <%= email %></p>
+<% end %>
+
+<% if params[:email].blank? %>
+
+<div class="list-group m-3">
+<% ManagedAppleAccount.find_each do |account| %>
+  <a href="?<%= Rack::Utils.build_query({email: account.email}) %>" class="list-group-item"><%= account.email %></a>
+<% end %>
+</div>
+
+<% else %>
+<% account = ManagedAppleAccount.find_by!(email: params[:email]) %>
+
+<% if @error %>
+<div class="alert alert-danger m-3"><%= @error %></div>
+<% end %>
+
+<form method="post" class="card p-3 m-3">
+  <div class="form-group mb-3">
+    <label for="inputEmail">Email</label>
+    <input type="email" class="form-control" id="inputEmail" name="email" value="<%= account.email %>" readonly />
+  </div>
+  <div class="form-group mb-3">
+    <label for="inputPassword">Password</label>
+    <input type="password" class="form-control" id="inputPassword" name="password" placeholder="Input password!">
+  </div>
+  <button type="submit" class="btn btn-primary">Login</button>
+</form>
+
+<script type="text/javascript">
+document.getElementById('inputPassword').focus();
+</script>
+
+<% end %>

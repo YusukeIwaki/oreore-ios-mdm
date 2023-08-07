@@ -32,12 +32,6 @@ add_index 'mdm_devices',
   unique: true,
   using: :btree
 
-create_table 'mdm_device_checkin_infos', force: :cascade do |t|
-  t.bigint 'mdm_device_id', null: false
-  t.string 'imei', null: false
-  t.string 'serial_number', null: false
-end
-
 create_table "mdm_push_endpoints", force: :cascade do |t|
   t.bigint "mdm_device_id", null: false
   t.string "token", null: false
@@ -54,31 +48,31 @@ add_index "mdm_push_endpoints",
   using: :btree
 
 create_table "mdm_command_requests", force: :cascade do |t|
-  t.bigint "mdm_device_id"
+  t.string 'device_identifier', null: false
   t.text "request_payload", null: false
   t.datetime "created_at", null: false
 end
 
 add_index "mdm_command_requests",
-  ["mdm_device_id"],
-  name: "index_mdm_command_requests_mdm_device_id",
+  ["device_identifier"],
+  name: "index_mdm_command_requests_device_identifier",
   using: :btree
 
 create_table "mdm_command_handling_requests", force: :cascade do |t|
-  t.bigint "mdm_device_id"
+  t.string 'device_identifier', null: false
   t.string "command_uuid", null: false
   t.text "request_payload", null: false
   t.datetime "created_at", null: false
 end
 
 add_index "mdm_command_handling_requests",
-  ["mdm_device_id", "command_uuid"],
-  name: "index_mdm_command_handling_requests_mdm_device_id_command_uuid",
+  ["device_identifier", "command_uuid"],
+  name: "index_mdm_command_handling_requests_device_identifier_command",
   unique: true,
   using: :btree
 
 create_table "mdm_command_histories", force: :cascade do |t|
-  t.bigint "mdm_device_id"
+  t.string 'device_identifier', null: false
   t.string "request_type", null: false
   t.string "command_uuid", null: false
   t.text "request_payload", null: false
@@ -87,8 +81,8 @@ create_table "mdm_command_histories", force: :cascade do |t|
 end
 
 add_index "mdm_command_histories",
-  ["mdm_device_id", "command_uuid"],
-  name: "index_command_histories_mdm_device_id_command_uuid",
+  ["device_identifier", "command_uuid"],
+  name: "index_command_histories_device_identifier_command_uuid",
   unique: true,
   using: :btree
 
@@ -113,4 +107,77 @@ add_index "declarative_management_synchronization_request_histories",
 add_index "declarative_management_synchronization_request_histories",
   ["created_at"],
   name: "index_ddm_synchronization_request_histories_created_at",
+  using: :btree
+
+create_table 'managed_apple_accounts', force: :cascade do |t|
+  t.string :email, null: false
+  t.datetime :created_at, null: false
+  t.datetime :updated_at, null: false
+end
+
+add_index 'managed_apple_accounts',
+  ['email'],
+  name: 'index_managed_apple_accounts_email',
+  unique: true,
+  using: :btree
+
+create_table 'managed_apple_account_access_tokens', force: :cascade do |t|
+  t.bigint :managed_apple_account_id, null: false
+  t.string :token, null: false
+  t.datetime :created_at, null: false
+  t.datetime :expires_at, null: false
+  t.datetime :updated_at, null: false
+end
+
+add_index 'managed_apple_account_access_tokens',
+  ['token'],
+  name: 'index_managed_apple_account_access_tokens_token',
+  unique: true,
+  using: :btree
+
+add_index 'managed_apple_account_access_tokens',
+  ['expires_at'],
+  name: 'index_managed_apple_account_access_tokens_expires_at',
+  using: :btree
+
+create_table 'byod_devices', force: :cascade do |t|
+  t.string :enrollment_id, null: false
+  t.datetime 'created_at', null: false
+end
+
+add_index 'byod_devices',
+  ['enrollment_id'],
+  name: 'index_byod_devices_enrollment_id',
+  unique: true,
+  using: :btree
+
+create_table 'managed_apple_account_access_token_usages' do |t|
+  t.bigint :managed_apple_account_access_token_id, null: false
+  t.string :enrollment_id, null: false
+end
+
+add_index 'managed_apple_account_access_token_usages',
+  ['enrollment_id'],
+  name: 'index_managed_apple_account_access_token_usages_enrollment_id',
+  unique: true,
+  using: :btree
+
+add_index 'managed_apple_account_access_token_usages',
+  ['managed_apple_account_access_token_id'],
+  name: 'index_managed_apple_account_access_token_usages_token_id',
+  unique: true,
+  using: :btree
+
+create_table "byod_push_endpoints", force: :cascade do |t|
+  t.bigint "byod_device_id", null: false
+  t.string "token", null: false
+  t.string "push_magic", null: false
+  t.datetime "created_at", null: false
+  t.datetime "updated_at", null: false
+end
+
+add_index "byod_push_endpoints",
+  ["byod_device_id"],
+  name: "index_byod_push_tokens_byod_device_id",
+  unique: true,
   using: :btree

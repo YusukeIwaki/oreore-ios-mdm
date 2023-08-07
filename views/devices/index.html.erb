@@ -1,5 +1,6 @@
 <%
-  @devices = MdmDevice.all
+  @mdm_devices = MdmDevice.all
+  @byod_devices = ByodDevice.all
 
   @qr_url = URI('https://chart.googleapis.com/chart').tap do |uri|
     uri.query = URI.encode_www_form({
@@ -12,11 +13,16 @@
 
 <div class="container">
   <h1>Devices</h1>
-  <% if @devices.present? %>
+  <% if @mdm_devices.present? || @byod_devices.present? %>
   <div class="list-group">
-  <% @devices.each do |device| %>
+  <% @mdm_devices.find_each do |device| %>
     <a href="/devices/<%= device.udid %>" class="list-group-item list-group-item-action">
     <%= device.serial_number %>
+    </a>
+  <% end %>
+  <% @byod_devices.find_each do |device| %>
+    <a href="/byod/devices/<%= device.enrollment_id %>" class="list-group-item list-group-item-action">
+    <%= device.enrollment_id %>
     </a>
   <% end %>
   </div>
