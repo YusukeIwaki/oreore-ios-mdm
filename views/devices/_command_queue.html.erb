@@ -1,7 +1,7 @@
 <%
-  @command_requests = command_queue.command_requests
-  @command_handling_requests = command_queue.command_handling_requests
-  @command_histories = command_queue.command_histories.select(:command_uuid, :request_type, :created_at)
+  @command_requests = command_queue.command_requests.order(id: :asc)
+  @command_handling_requests = command_queue.command_handling_requests.order(id: :asc)
+  @command_histories = command_queue.command_histories.select(:command_uuid, :request_type, :created_at).order(id: :asc)
   @declarativemanagement_device_identifier = declarativemanagement_device_identifier
 %>
 
