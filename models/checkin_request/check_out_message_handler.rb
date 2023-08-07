@@ -17,7 +17,7 @@ module CheckinRequest
     def handle
       device = MdmDevice.find_by!(udid: udid)
       CommandQueue.for_device(device).clear
-      MdmCommandHistory.where(mdm_device: device).destroy_all
+      MdmCommandHistory.where(device_identifier: udid).destroy_all
       device.destroy!
       DeclarativeManagement::SynchronizationRequestHistory.where(mdm_device: device).destroy_all
     end
