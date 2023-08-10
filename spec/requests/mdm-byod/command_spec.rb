@@ -12,7 +12,7 @@ describe 'BYOD command' do
       token: SecureRandom.hex(32),
     )
     ManagedAppleAccountAccessTokenUsage.create!(
-      enrollment_id: enrollment_id,
+      device_identifier: enrollment_id,
       managed_apple_account_access_token: account.access_tokens.first,
     )
   end

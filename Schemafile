@@ -153,12 +153,12 @@ add_index 'byod_devices',
 
 create_table 'managed_apple_account_access_token_usages' do |t|
   t.bigint :managed_apple_account_access_token_id, null: false
-  t.string :enrollment_id, null: false
+  t.string :device_identifier, null: false
 end
 
 add_index 'managed_apple_account_access_token_usages',
-  ['enrollment_id'],
-  name: 'index_managed_apple_account_access_token_usages_enrollment_id',
+  ['device_identifier'],
+  name: 'idx_managed_apple_account_access_token_usages_device_identifier',
   unique: true,
   using: :btree
 
