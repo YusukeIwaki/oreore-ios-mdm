@@ -30,9 +30,6 @@ class FixContentTypeMiddleware
 end
 
 class MdmServer < Sinatra::Base
-  use SinatraStdoutLogging
-  use FixContentTypeMiddleware
-
   helpers do
     def verbose_print_request
       lines = []
@@ -201,9 +198,6 @@ end
 
 
 class MdmByodServer < Sinatra::Base
-  use SinatraStdoutLogging
-  use FixContentTypeMiddleware
-
   helpers do
     # Get access_token from Authorization Header. The result access token can be expired.
     def current_access_token
@@ -287,7 +281,7 @@ class MdmByodServer < Sinatra::Base
         # since CheckOut request cannot handle 401.
         ManagedAppleAccountAccessTokenUsage.find_by!(
           managed_apple_account_access_token: current_access_token,
-          enrollment_id: plist['EnrollmentID'],
+          device_identifier: plist['EnrollmentID'],
         )
       rescue ActiveRecord::RecordNotFound
         redirect_to_authenticate_url
@@ -303,7 +297,7 @@ class MdmByodServer < Sinatra::Base
     if plist['EnrollmentID'].present?
       # Record usage and block access from other devices.
       ManagedAppleAccountAccessTokenUsage.
-        find_or_initialize_by(enrollment_id: plist['EnrollmentID']).
+        find_or_initialize_by(device_identifier: plist['EnrollmentID']).
         update!(managed_apple_account_access_token: current_access_token)
     end
 
@@ -338,7 +332,7 @@ class MdmByodServer < Sinatra::Base
 
     # Record usage and block access from other devices.
     ManagedAppleAccountAccessTokenUsage.
-      find_or_initialize_by(enrollment_id: enrollment_id).
+      find_or_initialize_by(device_identifier: enrollment_id).
       update!(managed_apple_account_access_token: current_access_token)
 
     device = ByodDevice.find_by!(enrollment_id: enrollment_id)
@@ -359,6 +353,212 @@ class MdmByodServer < Sinatra::Base
     # Additional response handling here.
     if ['Acknowledged', 'Error'].include?(status) && handling_request && (request_type = handling_request.request_payload.dig('Command', 'RequestType'))
       if (handler_klass = ByodCommandResponseHandler.const_get("#{request_type}#{status}") rescue nil)
+        if status == 'Error'
+          handler_klass.new(device, plist['ErrorChain']).handle
+        else
+          response_payload = plist.reject do |key, value|
+            %w[Status UDID CommandUUID ErrorChain].include?(key)
+          end
+          handler_klass.new(device, response_payload).handle
+        end
+      end
+    end
+
+    command = command_queue.dequeue
+
+    if status == 'NotNow' && handling_request
+      command_queue << handling_request
+    end
+
+    logger.info("command: #{command || 'nil'}")
+    if command
+      content_type 'application/xml'
+      body command.to_plist
+    else
+      200
+    end
+  end
+end
+
+class MdmAddeServer < Sinatra::Base
+  helpers do
+    # Get access_token from Authorization Header. The result access token can be expired.
+    def current_access_token
+      return @current_access_token if @current_access_token
+
+      m = request.env['HTTP_AUTHORIZATION']&.match(/\ABearer (.+)\z/)
+      return nil unless m
+
+      token = ManagedAppleAccountAccessToken.find_by(token: m[1])
+      return nil unless token
+
+      @current_access_token = token
+    end
+
+    def authorized_account
+      current_access_token.try! do |token|
+        if token.expired?
+          nil
+        else
+          token.managed_apple_account
+        end
+      end
+    end
+
+    def authorized_account_required
+      redirect_to_authenticate_url unless authorized_account
+    end
+
+    def redirect_to_authenticate_url
+      realm = {
+        method: 'apple-as-web',
+        url: "#{ENV['MDM_SERVER_BASE_URL']}/mdm-adde/authenticate",
+      }.map { |k, v| "#{k}=\"#{v}\"" }.join(', ')
+
+      halt 401, { 'WWW-Authenticate' => "Bearer #{realm}" }, 'Unauthorized'
+    end
+  end
+
+  post '/mdm-adde/enroll' do
+    authorized_account_required
+    content_type 'application/x-apple-aspen-config'
+    rb :'mdm-adde.mobileconfig', locals: { assigned_managed_apple_id: authorized_account.email }
+  end
+
+  # accessed via WebView.
+  get '/mdm-adde/authenticate' do
+    email = params['user-identifier']
+    logger.info "Device enrollment request with email=#{email}"
+
+    erb :'mdm-adde/authenticate.html'
+  end
+
+  # accessed via WebView.
+  post '/mdm-adde/authenticate' do
+    account = ManagedAppleAccount.find_by!(email: params[:email])
+
+    if params[:password] == 'PASSWORD!'
+      token = SecureRandom.hex(24)
+      account.access_tokens.create!(token: token)
+
+      url = "apple-remotemanagement-user-login://authentication-results?access-token=#{token}"
+      halt 308, { 'Location' => url }, 'Redirect'
+    end
+
+    @error = 'Invalid password'
+    erb :'mdm-adde/authenticate.html'
+  end
+
+  put '/mdm-adde/checkin' do
+    plist = Plist.parse_xml(request.body.read, marshal: false)
+
+    if plist['MessageType'] == 'GetToken'
+      # https://developer.apple.com/documentation/devicemanagement/get_token
+      halt 400, 'Not supported yet'
+    end
+
+    if plist['MessageType'] == 'CheckOut' && current_access_token
+      begin
+        # Check if the access token is used by the device,
+        # since CheckOut request cannot handle 401.
+        ManagedAppleAccountAccessTokenUsage.find_by!(
+          managed_apple_account_access_token: current_access_token,
+          device_identifier: plist['UDID'],
+        )
+      rescue ActiveRecord::RecordNotFound
+        redirect_to_authenticate_url
+      end
+    else
+      authorized_account_required
+    end
+
+    if plist['MessageType'] == 'DeclarativeManagement'
+      unless plist['Endpoint']
+        halt 400, 'Bad request'
+      end
+      device = MdmDevice.find_by!(udid: plist['UDID'])
+
+      endpoint = plist['Endpoint']
+      data = plist['Data'] ? JSON.parse(plist['Data'].read) : nil
+
+      logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
+      content_type 'application/json'
+      router = DeclarativeManagementRouter.new(device)
+      begin
+        response = router.handle_request(endpoint, data)
+        DeclarativeManagement::SynchronizationRequestHistory.
+          log_response(device, endpoint, data, response)
+        return response.to_json
+      rescue DeclarativeManagementRouter::RouteNotFound
+        DeclarativeManagement::SynchronizationRequestHistory.
+          log_404(device, endpoint, data)
+        halt 404, 'Not found'
+      end
+    end
+
+    if plist.delete('Topic') != PushCertificate.from_env.topic
+      halt 403, 'Topic mismatch'
+    end
+
+    if plist['UDID'].present?
+      # Record usage and block access from other devices.
+      ManagedAppleAccountAccessTokenUsage.
+        find_or_initialize_by(device_identifier: plist['UDID']).
+        update!(managed_apple_account_access_token: current_access_token)
+    end
+
+    message_handler =
+      case plist['MessageType']
+      when 'Authenticate'
+        CheckinRequest::AuthenticateMessageHandler.new(plist)
+      when 'TokenUpdate'
+        CheckinRequest::TokenUpdateMessageHandler.new(plist)
+      when 'CheckOut'
+        CheckinRequest::CheckOutMessageHandler.new(plist)
+      else
+        raise 'Unknown MessageType'
+      end
+
+    message_handler.handle
+
+    content_type 'text/plain'
+    'OK'
+  end
+
+  put '/mdm-adde/command' do
+    authorized_account_required
+
+    plist = Plist.parse_xml(request.body.read, marshal: false)
+    udid = plist['UDID']
+    status = plist['Status']
+
+    if !udid || !status
+      halt 400, 'Bad request'
+    end
+
+    # Record usage and block access from other devices.
+    ManagedAppleAccountAccessTokenUsage.
+      find_or_initialize_by(device_identifier: udid).
+      update!(managed_apple_account_access_token: current_access_token)
+
+    device = MdmDevice.find_by!(udid: udid)
+    command_queue = CommandQueue.for_device(device)
+    command_uuid = plist['CommandUUID']
+
+    unless status == 'Idle'
+      begin
+        handling_request = command_queue.dequeue_handling_request(command_uuid: command_uuid)
+        MdmCommandHistory.log_result(handling_request, plist)
+      rescue ActiveRecord::RecordNotFound
+        # iOS sometimes retry MDM response.
+        # Just ignore if CommandUUID is already handled and not in DB.
+        logger.warn("CommandUUID not in DB: #{plist}")
+      end
+    end
+
+    # Additional response handling here.
+    if ['Acknowledged', 'Error'].include?(status) && handling_request && (request_type = handling_request.request_payload.dig('Command', 'RequestType'))
+      if (handler_klass = CommandResponseHandler.const_get("#{request_type}#{status}") rescue nil)
         if status == 'Error'
           handler_klass.new(device, plist['ErrorChain']).handle
         else
@@ -547,7 +747,11 @@ class SimpleAdminConsole < Sinatra::Base
 end
 
 class App < Sinatra::Base
+  use SinatraStdoutLogging
+  use FixContentTypeMiddleware
+
   use MdmServer
   use MdmByodServer
+  use MdmAddeServer
   use SimpleAdminConsole
 end
