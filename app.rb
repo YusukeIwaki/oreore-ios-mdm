@@ -30,9 +30,6 @@ class FixContentTypeMiddleware
 end
 
 class MdmServer < Sinatra::Base
-  use SinatraStdoutLogging
-  use FixContentTypeMiddleware
-
   helpers do
     def verbose_print_request
       lines = []
@@ -201,9 +198,6 @@ end
 
 
 class MdmByodServer < Sinatra::Base
-  use SinatraStdoutLogging
-  use FixContentTypeMiddleware
-
   helpers do
     # Get access_token from Authorization Header. The result access token can be expired.
     def current_access_token
@@ -387,9 +381,6 @@ class MdmByodServer < Sinatra::Base
 end
 
 class MdmAddeServer < Sinatra::Base
-  use SinatraStdoutLogging
-  use FixContentTypeMiddleware
-
   helpers do
     # Get access_token from Authorization Header. The result access token can be expired.
     def current_access_token
@@ -756,6 +747,9 @@ class SimpleAdminConsole < Sinatra::Base
 end
 
 class App < Sinatra::Base
+  use SinatraStdoutLogging
+  use FixContentTypeMiddleware
+
   use MdmServer
   use MdmByodServer
   use MdmAddeServer
