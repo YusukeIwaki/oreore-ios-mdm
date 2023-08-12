@@ -6,10 +6,9 @@ services:
       - postgres
     environment:
       - DATABASE_URL=postgres://pguser:pgpassword@postgres:5432/pguser
-      - GITHUB_CLIENT_ID
-      - GITHUB_CLIENT_SECRET
-      - GITHUB_LOGIN_ALLOWED_USERS
-      - MS_TEAMS_WEBHOOK_URL
+      - GOOGLE_CLIENT_ID
+      - GOOGLE_CLIENT_SECRET
+      - GOOGLE_ALLOWED_USERS
       - MDM_SERVER_BASE_URL
       - PUSH_CERTIFICATE_PASSWORD
       - PUSH_CERTIFICATE_BASE64

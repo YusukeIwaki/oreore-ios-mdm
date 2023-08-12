@@ -8,7 +8,7 @@ gem 'apnotic'
 gem 'data_class_factory'
 gem 'faraday'
 gem 'omniauth'
-gem 'omniauth-github'
+gem 'omniauth-google-oauth2'
 gem 'puma'
 gem 'rack'
 gem 'sinatra', require: false

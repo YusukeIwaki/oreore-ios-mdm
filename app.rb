@@ -4,8 +4,6 @@ Bundler.require :default, (ENV['RACK_ENV'] || :development).to_sym
 require_relative './config/active_record'
 require_relative './config/zeitwerk'
 
-require 'omniauth'
-require 'omniauth-github'
 require 'sinatra/base'
 
 Tilt.register('rb', Tilt::RubyTemplate)
@@ -588,13 +586,13 @@ end
 
 class SimpleAdminConsole < Sinatra::Base
   enable :sessions
-  if ENV['GITHUB_CLIENT_ID'].present?
+  if ENV['GOOGLE_CLIENT_ID'].present?
     use OmniAuth::Builder do
-      provider :github, ENV['GITHUB_CLIENT_ID'], ENV['GITHUB_CLIENT_SECRET']
+      provider :google_oauth2, ENV['GOOGLE_CLIENT_ID'], ENV['GOOGLE_CLIENT_SECRET']
     end
   else
     use OmniAuth::Builder do
-      provider :developer, fields: [:username], uid_field: :username
+      provider :developer, fields: [:email], uid_field: :email
     end
   end
 
@@ -630,7 +628,7 @@ class SimpleAdminConsole < Sinatra::Base
 
     auth_hash = env["omniauth.auth"]
     username = auth_hash['uid']
-    if ENV['GITHUB_LOGIN_ALLOWED_USERS'].split(',').include?(username)
+    if ENV['GOOGLE_ALLOWED_USERS'].split(',').include?(username)
       session[:uid] = username
       redirect return_url
     else
@@ -638,7 +636,7 @@ class SimpleAdminConsole < Sinatra::Base
     end
   end
 
-  get '/auth/github/callback' do
+  get '/auth/google_oauth2/callback' do
     url = session.delete(:return_to)
     return_url =
       if url.blank? || url.include?('/auth/')
@@ -648,21 +646,12 @@ class SimpleAdminConsole < Sinatra::Base
       end
 
     auth_hash = env["omniauth.auth"]
-    username = auth_hash.dig('extra', 'raw_info', 'login')
-    if ENV['GITHUB_LOGIN_ALLOWED_USERS'].split(',').include?(username)
-      session[:uid] = username
+    email_verified = auth_hash.dig('extra', 'raw_info', 'email_verified')
+    email = auth_hash.dig('extra', 'raw_info', 'email')
+    if email_verified && ENV['GOOGLE_ALLOWED_USERS'].split(',').include?(email)
+      session[:uid] = email
       redirect return_url
     else
-      if ENV['MS_TEAMS_WEBHOOK_URL'].present? && username.present?
-        Thread.new(username) do |_username|
-          Net::HTTP.post(
-            URI(ENV['MS_TEAMS_WEBHOOK_URL']),
-            { text: "Login from username: '#{_username}'" }.to_json,
-            { 'Content-Type' => 'application/json' }
-          )
-        end
-      end
-
       halt 403, 'Access Forbidden'
     end
   end

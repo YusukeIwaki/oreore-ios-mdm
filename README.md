@@ -1,11 +1,11 @@
 # oreore-ios-mdm
 
-## Prepare GitHub OAuth apps
+## Prepare Google OAuth apps
 
-- GITHUB_CLEINT_ID
-- GITHUB_CLIENT_SECRET
+- GOOGLE_CLIENT_ID
+- GOOGLE_CLIENT_SECRET
 
-and set allowed user names like this: `export GITHUB_LOGIN_ALLOWED_USERS=YusukeIwaki,Octcat`
+and set allowed user names like this: `export GOOGLE_ALLOWED_USERS=test@gmail.com,iwaki@example.com
 
 ## Prepare MDM push certificate
 
