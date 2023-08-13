@@ -21,6 +21,18 @@ services:
       - 3000:3000
     command: bundle exec rackup --host 0.0.0.0 --port 3000
 
+  testaccount:
+    image: ruby:3.2-alpine
+    environment:
+      - MDM_SERVER_BASE_URL
+      - RACK_ENV=production
+    volumes:
+      - ./testaccount.rb:/app/testaccount.rb
+    working_dir: /app
+    ports:
+      - 4000:4000
+    command: sh -c 'gem install sinatra webrick && ruby testaccount.rb -p 4000'
+
   postgres:
     image: postgres:15-alpine
     restart: always
