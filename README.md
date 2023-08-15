@@ -196,7 +196,7 @@ Note that each key should be appeared in only one property file as is mentioned 
 
 After updating the declaration, we have to re-distribute the declaration to the devices using `DeclarativeManagement` MDM command.
 
-## Example app for User Enrollment
+## Example app for Account-driven User/Device Enrollment
 
 ```
 ruby testaccount.rb
@@ -205,3 +205,5 @@ ruby testaccount.rb
 will launch a test server with Sinatra, just for serving `.well-known/com.apple.remotemanagement`.
 
 Note that this test server requires `MDM_SERVER_BASE_URL` environment variable set.
+
+iOS (> 17) devices will get a MDM configuration of Device Enrollment (ADDE) while iOS <= 16 will get a configuration of User Enrollment (BYOD).
