@@ -96,22 +96,21 @@ class MdmServer < Sinatra::Base
       unless plist['Endpoint']
         halt 400, 'Bad request'
       end
-      device = MdmDevice.find_by!(udid: plist['UDID'])
+      udid = plist['UDID']
+      device = MdmDevice.find_by!(udid: udid)
 
       endpoint = plist['Endpoint']
       data = plist['Data'] ? JSON.parse(plist['Data'].read) : nil
 
       logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
       content_type 'application/json'
-      router = DeclarativeManagementRouter.new(device)
+      router = DeclarativeManagementRouter.new(device.ddm_identifier)
       begin
         response = router.handle_request(endpoint, data)
-        DeclarativeManagement::SynchronizationRequestHistory.
-          log_response(device, endpoint, data, response)
+        Ddm::SynchronizationRequestHistory.log_response(udid, endpoint, data, response)
         return response.to_json
       rescue DeclarativeManagementRouter::RouteNotFound
-        DeclarativeManagement::SynchronizationRequestHistory.
-          log_404(device, endpoint, data)
+        Ddm::SynchronizationRequestHistory.log_404(udid, endpoint, data)
         halt 404, 'Not found'
       end
     end
@@ -474,22 +473,21 @@ class MdmAddeServer < Sinatra::Base
       unless plist['Endpoint']
         halt 400, 'Bad request'
       end
-      device = MdmDevice.find_by!(udid: plist['UDID'])
+      udid = plist['UDID']
+      device = MdmDevice.find_by!(udid: udid)
 
       endpoint = plist['Endpoint']
       data = plist['Data'] ? JSON.parse(plist['Data'].read) : nil
 
       logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
       content_type 'application/json'
-      router = DeclarativeManagementRouter.new(device)
+      router = DeclarativeManagementRouter.new(device.ddm_identifier)
       begin
         response = router.handle_request(endpoint, data)
-        DeclarativeManagement::SynchronizationRequestHistory.
-          log_response(device, endpoint, data, response)
+        Ddm::SynchronizationRequestHistory.log_response(udid, endpoint, data, response)
         return response.to_json
       rescue DeclarativeManagementRouter::RouteNotFound
-        DeclarativeManagement::SynchronizationRequestHistory.
-          log_404(device, endpoint, data)
+        Ddm::SynchronizationRequestHistory.log_404(udid, endpoint, data)
         halt 404, 'Not found'
       end
     end

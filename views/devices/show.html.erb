@@ -2,7 +2,7 @@
   @device = MdmDevice.find_by!(udid: params[:udid])
 
   @command_queue = CommandQueue.for_device(@device)
-  @synchronization_request_histories = DeclarativeManagement::SynchronizationRequestHistory.where(mdm_device: @device).select(:id, :endpoint, :created_at).order(id: :asc)
+  @synchronization_request_histories = Ddm::SynchronizationRequestHistory.where(device_identifier: params[:udid]).select(:id, :endpoint, :created_at).order(id: :asc)
 %>
 
 <div class="container">

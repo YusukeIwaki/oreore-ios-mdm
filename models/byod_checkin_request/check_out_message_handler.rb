@@ -16,10 +16,10 @@ module ByodCheckinRequest
 
     def handle
       device = ByodDevice.find_by!(enrollment_id: enrollment_id)
-      # CommandQueue.for_device(device).clear
-      # MdmCommandHistory.where(mdm_device: device).destroy_all
+      CommandQueue.for_byod_device(device).clear
+      MdmCommandHistory.where(device_identifier: enrollment_id).destroy_all
       device.destroy!
-      # DeclarativeManagement::SynchronizationRequestHistory.where(mdm_device: device).destroy_all
+      # Ddm::SynchronizationRequestHistory.where(device_identifier: enrollment_id).destroy_all
     end
 
     private

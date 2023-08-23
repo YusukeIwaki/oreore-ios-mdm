@@ -91,20 +91,20 @@ add_index "mdm_command_histories",
   name: "index_command_histories_created_at",
   using: :btree
 
-create_table "declarative_management_synchronization_request_histories", force: :cascade do |t|
-  t.bigint "mdm_device_id", null: false
+create_table "ddm_synchronization_request_histories", force: :cascade do |t|
+  t.string 'device_identifier', null: false
   t.string "endpoint", null: false
   t.text "request_payload"
   t.text "response_payload"
   t.datetime "created_at", null: false
 end
 
-add_index "declarative_management_synchronization_request_histories",
-  ["mdm_device_id", "endpoint"],
+add_index "ddm_synchronization_request_histories",
+  ["device_identifier", "endpoint"],
   name: "index_ddm_synchronization_request_histories_endpoint",
   using: :btree
 
-add_index "declarative_management_synchronization_request_histories",
+add_index "ddm_synchronization_request_histories",
   ["created_at"],
   name: "index_ddm_synchronization_request_histories_created_at",
   using: :btree
