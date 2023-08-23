@@ -1,0 +1,11 @@
+version: '3'
+services:
+  web:
+    image: ruby:3.0-alpine3.16
+    command: echo 0
+    ports:
+      - 30000:3000
+
+  postgres:
+    ports:
+      - 5432:5432
