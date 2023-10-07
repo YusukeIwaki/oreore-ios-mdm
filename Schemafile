@@ -91,6 +91,142 @@ add_index "mdm_command_histories",
   name: "index_command_histories_created_at",
   using: :btree
 
+create_table 'ddm_device_groups', force: :cascade do |t|
+  t.string 'name', null: false
+  t.datetime 'created_at', null: false
+  t.datetime 'updated_at', null: false
+end
+
+add_index 'ddm_device_groups',
+  ['name'],
+  name: 'index_ddm_device_groups_name',
+  unique: true,
+  using: :btree
+
+create_table 'ddm_device_group_items', force: :cascade do |t|
+  t.bigint 'ddm_device_group_id', null: false
+  t.string 'device_identifier', null: false
+  t.datetime 'created_at', null: false
+end
+
+add_index 'ddm_device_group_items',
+  ['device_identifier', 'ddm_device_group_id'],
+  name: 'index_ddm_device_group_item_device_identifier',
+  unique: true,
+  using: :btree
+
+add_index 'ddm_device_group_items',
+  ['ddm_device_group_id'],
+  name: 'index_ddm_device_group_item_ddm_device_group',
+  using: :btree
+
+create_table 'ddm_activations', force: :cascade do |t|
+  t.string 'name', null: false
+  t.string 'type', null: false
+  t.text 'payload', null: false
+  t.datetime 'created_at', null: false
+  t.datetime 'updated_at', null: false
+end
+
+add_index 'ddm_activations',
+  ['name'],
+  name: 'index_ddm_activation_name',
+  unique: true,
+  using: :btree
+
+create_table 'ddm_activation_targets', force: :cascade do |t|
+  t.bigint 'ddm_activation_id', null: false
+  t.string 'target_identifier', null: true # NULL for applying all devices
+  t.datetime 'created_at', null: false
+end
+
+add_index 'ddm_activation_targets',
+  ['target_identifier', 'ddm_activation_id'],
+  name: 'index_ddm_activation_target_identifier',
+  unique: true,
+  using: :btree
+
+add_index 'ddm_activation_targets',
+  ['ddm_activation_id'],
+  name: 'index_ddm_activation_target_ddm_activation_id',
+  using: :btree
+
+create_table 'ddm_configurations', force: :cascade do |t|
+  t.string 'name', null: false
+  t.string 'type', null: false
+  t.text 'payload', null: false
+  t.datetime 'created_at', null: false
+  t.datetime 'updated_at', null: false
+end
+
+add_index 'ddm_configurations',
+  ['name'],
+  name: 'index_ddm_configuration_name',
+  unique: true,
+  using: :btree
+
+create_table 'ddm_assets', force: :cascade do |t|
+  t.string 'name', null: false
+  t.datetime 'created_at', null: false
+end
+
+add_index 'ddm_assets',
+  ['name'],
+  name: 'index_ddm_asset_name',
+  unique: true,
+  using: :btree
+
+create_table 'ddm_asset_details', force: :cascade do |t|
+  t.bigint 'ddm_asset_id', null: false
+  t.string 'target_identifier', null: true # NULL for applying by default
+  t.string 'type', null: false
+  t.text 'payload', null: false
+  t.datetime 'created_at', null: false
+  t.datetime 'updated_at', null: false
+end
+
+add_index 'ddm_asset_details',
+  ['target_identifier', 'ddm_asset_id'],
+  name: 'index_ddm_asset_detail_target_identifier',
+  unique: true,
+  using: :btree
+
+add_index 'ddm_asset_details',
+  ['ddm_asset_id'],
+  name: 'index_ddm_asset_detail_ddm_asset_id',
+  using: :btree
+
+create_table 'ddm_managements', force: :cascade do |t|
+  t.string 'name', null: false
+  t.datetime 'created_at', null: false
+end
+
+add_index 'ddm_managements',
+  ['name'],
+  name: 'index_management_name',
+  unique: true,
+  using: :btree
+
+create_table 'ddm_management_details', force: :cascade do |t|
+  t.bigint 'ddm_management_id', null: false
+  t.string 'target_identifier', null: true # NULL for applying by default
+  t.string 'type', null: false
+  t.text 'payload', null: false
+  t.datetime 'created_at', null: false
+  t.datetime 'updated_at', null: false
+end
+
+add_index 'ddm_management_details',
+  ['target_identifier', 'ddm_management_id'],
+  name: 'index_ddm_management_detail_target_identifier',
+  unique: true,
+  using: :btree
+
+add_index 'ddm_management_details',
+  ['ddm_management_id'],
+  name: 'index_ddm_management_detail_ddm_management_id',
+  using: :btree
+
 create_table "ddm_synchronization_request_histories", force: :cascade do |t|
   t.string 'device_identifier', null: false
   t.string "endpoint", null: false
