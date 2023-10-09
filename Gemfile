@@ -9,14 +9,15 @@ gem 'data_class_factory'
 gem 'faraday'
 gem 'omniauth'
 gem 'omniauth-google-oauth2'
-gem 'puma'
-gem 'rack'
-gem 'sinatra', require: false
-gem 'sinatra-activerecord'
 gem 'pg'
 gem 'plist'
 gem 'pry'
+gem 'puma'
+gem 'rack'
 gem 'ridgepole'
+gem 'shrine'
+gem 'sinatra', require: false
+gem 'sinatra-activerecord'
 gem 'zeitwerk'
 
 group :development, :test do

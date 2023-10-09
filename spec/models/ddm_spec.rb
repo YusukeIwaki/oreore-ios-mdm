@@ -360,4 +360,137 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
       expect(details.map(&:name)).to contain_exactly('age', 'organization', 'email')
     end
   end
+
+  it 'should define PublicAsset' do
+    Ddm::PublicAsset.delete_all
+    Ddm::PublicAssetDetail.delete_all
+
+    Dir.mktmpdir do |dir|
+      filepath = File.join(dir, 'test_user1.plist')
+      xml = <<~XML
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+      <dict>
+        <key>PayloadDisplayName</key>
+        <string>Oreore MDM configuration</string>
+      </dict>
+      </plist>
+      XML
+      File.write(filepath, xml)
+
+      file = Rack::Test::UploadedFile.new(filepath, 'application/x-plist')
+      asset = Ddm::PublicAsset.create!(name: 'test.plist')
+      asset.details.create!(target_identifier: 'SERIALNUMBER1', asset_file: file)
+
+      uploaded = Ddm::PublicAssetDetail.where(public_asset: asset).last
+      expect(uploaded.asset_file.read).to eq(xml)
+    end
+  end
+
+  describe 'PublicAsset.details_for' do
+    before do
+      Ddm::PublicAsset.delete_all
+      Ddm::PublicAssetDetail.delete_all
+      Ddm::DeviceGroup.delete_all
+      Ddm::DeviceGroupItem.delete_all
+    end
+
+    around do |example|
+      Dir.mktmpdir do |dir|
+        @tmpdir = dir
+        example.run
+      end
+    end
+
+    it 'should return details with priority identifier > group > fallback' do
+      group_def = {
+        'group1' => %w(SERIALNUMBER2 SERIALNUMBER3),
+        'group2' => %w(SERIALNUMBER1 SERIALNUMBER3),
+      }
+      group_def.each do |name, device_identifiers|
+        device_group = Ddm::DeviceGroup.create!(name: name)
+        device_identifiers.each do |device_identifier|
+          device_group.items.create!(device_identifier: device_identifier)
+        end
+      end
+
+      public_asset_def = {
+        nil => ['fallback', 'test_fallback.xml'],
+        'group1' => ['group1', 'test_group.xml'],
+        'group2' => ['group2', 'test_group.xml'],
+        'group3' => ['group3', 'test_group.xml'],
+        'SERIALNUMBER1' => ['user1', 'test_user.xml'],
+        'SERIALNUMBER2' => ['user2', 'test_user.xml'],
+      }
+      public_asset = Ddm::PublicAsset.create!(name: 'test.plist')
+      public_asset_def.to_a.shuffle.each do |target_identifier, info|
+        filepath = File.join(@tmpdir, info.last)
+        xml = <<~XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>PayloadDisplayName</key>
+          <string>#{info.first}</string>
+        </dict>
+        </plist>
+        XML
+        File.write(filepath, xml)
+        public_asset.details.create!(
+          target_identifier: target_identifier,
+          asset_file: Rack::Test::UploadedFile.new(filepath, 'application/x-plist'),
+        )
+      end
+
+      details = Ddm::PublicAsset.details_for('SERIALNUMBER1')
+      expect(details.size).to eq(1)
+      plist = Plist.parse_xml(details.first.asset_file.read)
+      expect(plist['PayloadDisplayName']).to eq('user1')
+
+      details = Ddm::PublicAsset.details_for('SERIALNUMBER3')
+      expect(details.size).to eq(1)
+      plist = Plist.parse_xml(details.first.asset_file.read)
+      expect(plist['PayloadDisplayName']).to eq('group1')
+
+      details = Ddm::PublicAsset.details_for('SERIALNUMBER4')
+      expect(details.size).to eq(1)
+      plist = Plist.parse_xml(details.first.asset_file.read)
+      expect(plist['PayloadDisplayName']).to eq('fallback')
+    end
+
+    it 'should return multiple public assets' do
+      group = Ddm::DeviceGroup.create!(name: 'group1')
+      group.items.create!(device_identifier: 'SERIALNUMBER1')
+
+      public_asset_target_def = {
+        'test1' => nil,
+        'test2' => 'group1',
+        'test3' => 'SERIALNUMBER1',
+      }
+      public_asset_target_def.each do |name, target_identifier|
+        filepath = File.join(@tmpdir, "#{name}.plist")
+        xml = <<~XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>PayloadDisplayName</key>
+          <string>#{name}</string>
+        </dict>
+        </plist>
+        XML
+        File.write(filepath, xml)
+        public_asset = Ddm::PublicAsset.create!(name: "#{name}.plist")
+        public_asset.details.create!(
+          target_identifier: target_identifier,
+          asset_file: Rack::Test::UploadedFile.new(filepath, 'application/x-plist'),
+        )
+      end
+
+      details = Ddm::PublicAsset.details_for('SERIALNUMBER1')
+      expect(details.size).to eq(3)
+      expect(details.map(&:name)).to contain_exactly('test1.plist', 'test2.plist', 'test3.plist')
+    end
+  end
 end

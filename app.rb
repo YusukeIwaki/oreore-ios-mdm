@@ -2,6 +2,7 @@ require 'bundler'
 Bundler.require :default, (ENV['RACK_ENV'] || :development).to_sym
 
 require_relative './config/active_record'
+require_relative './config/shrine'
 require_relative './config/zeitwerk'
 
 require 'sinatra/base'
