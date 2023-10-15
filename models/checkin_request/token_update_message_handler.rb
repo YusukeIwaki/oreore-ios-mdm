@@ -27,32 +27,11 @@ module CheckinRequest
     end
 
     def handle
-      pending_checkin = PendingCheckin.find_by!(udid: udid)
-
-      mdm_device = MdmDevice.find_by(udid: udid)
-      if mdm_device
-        ActiveRecord::Base.transaction do
-          mdm_device.mdm_push_endpoint.update!(
-            token: token,
-            push_magic: push_magic,
-            unlock_token: unlock_token,
-          )
-          pending_checkin.destroy!
-        end
+      pending_checkin = PendingCheckin.find_by(udid: udid)
+      if pending_checkin
+        handle_token_update_after_authenticate(pending_checkin)
       else
-        ActiveRecord::Base.transaction do
-          mdm_device = MdmDevice.create!(
-            udid: udid,
-            imei: pending_checkin.imei,
-            serial_number: pending_checkin.serial_number,
-          )
-          mdm_device.create_mdm_push_endpoint!(
-            token: token,
-            push_magic: push_magic,
-            unlock_token: unlock_token,
-          )
-          pending_checkin.destroy!
-        end
+        handle_token_update_only
       end
 
       nil
@@ -81,7 +60,50 @@ module CheckinRequest
     end
 
     def unlock_token
-      @plist['UnlockToken'].read.unpack('H*').first
+      if @plist['UnlockToken']
+        @plist['UnlockToken'].read.unpack('H*').first
+      else
+        nil
+      end
+    end
+
+    def handle_token_update_after_authenticate(pending_checkin)
+      mdm_device = MdmDevice.find_by(udid: udid)
+      if mdm_device
+        ActiveRecord::Base.transaction do
+          mdm_device.mdm_push_endpoint.update!(
+            token: token,
+            push_magic: push_magic,
+            unlock_token: unlock_token,
+          )
+          pending_checkin.destroy!
+        end
+      else
+        ActiveRecord::Base.transaction do
+          mdm_device = MdmDevice.create!(
+            udid: udid,
+            imei: pending_checkin.imei,
+            serial_number: pending_checkin.serial_number,
+          )
+          mdm_device.create_mdm_push_endpoint!(
+            token: token,
+            push_magic: push_magic,
+            unlock_token: unlock_token,
+          )
+          pending_checkin.destroy!
+        end
+      end
+    end
+
+    def handle_token_update_only
+      attributes = {
+        token: token,
+        push_magic: push_magic,
+        unlock_token: unlock_token,
+      }.compact # unlock_token can be nil
+
+      mdm_device = MdmDevice.find_by!(udid: udid)
+      mdm_device.mdm_push_endpoint.update!(attributes)
     end
   end
 end
