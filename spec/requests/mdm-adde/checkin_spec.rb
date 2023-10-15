@@ -68,6 +68,30 @@ describe 'ADDE Checkin' do
     </plist>
     BODY
   }
+  let(:token_update_without_unlock_token_body) {
+    <<~BODY
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+    <dict>
+      <key>AwaitingConfiguration</key>
+      <false/>
+      <key>MessageType</key>
+      <string>TokenUpdate</string>
+      <key>PushMagic</key>
+      <string>#{push_magic}</string>
+      <key>Token</key>
+      <data>
+      #{Base64.strict_encode64(["#{push_token}aabbcc"].pack("H*"))}
+      </data>
+      <key>Topic</key>
+      <string>#{topic}</string>
+      <key>UDID</key>
+      <string>#{udid}</string>
+    </dict>
+    </plist>
+    BODY
+  }
 
   it 'should handle Authenticate/TokenUpdate' do
     header 'User-Agent', 'MDM/1.0'
@@ -86,6 +110,20 @@ describe 'ADDE Checkin' do
     expect(device.managed_apple_account.email).to eq('test@example.com')
     expect(device.mdm_push_endpoint.token).to eq(push_token)
     expect(device.mdm_push_endpoint.push_magic).to eq(push_magic)
+  end
+
+  it 'should handle TokenUpdate without UnlockToken' do
+    header 'User-Agent', 'MDM/1.0'
+    header 'Content-Type', 'application/x-apple-aspen-mdm-checkin'
+    put '/mdm-adde/checkin', authenticate_body
+    put '/mdm-adde/checkin', token_update_body
+    put '/mdm-adde/checkin', token_update_without_unlock_token_body
+
+    expect(last_response.status).to eq(200)
+
+    device = MdmDevice.last
+    expect(device.udid).to eq(udid)
+    expect(device.mdm_push_endpoint.token).to eq("#{push_token}aabbcc")
   end
 
   it 'should deny accesses from another enrollmentId' do
