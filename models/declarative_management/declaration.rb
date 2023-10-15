@@ -1,120 +1,85 @@
 module DeclarativeManagement
   class Declaration
-    class YmlReader
-      def initialize(serial_number)
-        @reference_map = {}
-        ConfigurationDefinition.all.each do |definition|
-          @reference_map[definition.identifier.reference_name] = definition
-        end
-        AssetDefinition.for(serial_number).each do |definition|
-          @reference_map[definition.identifier.reference_name] = definition
-        end
-        PropertyDefinition.for(serial_number).each do |definition|
-          @reference_map[definition.identifier.reference_name] = definition
-        end
-        @public_asset_file_map = {}
-        PublicAssetFile.for(serial_number).each do |public_asset_file|
-          @public_asset_file_map[public_asset_file.reference_name] = public_asset_file.access_url
-        end
-
-      end
-
-      class ReadResult
-        def initialize(dependencies, yml)
-          @dependencies = dependencies
-          @yml = yml
-        end
-
-        attr_reader :dependencies, :yml
-      end
-
-      def read(yaml_string)
-        dependencies = []
-        _yaml_string = yaml_string.dup
-        @reference_map.each do |reference_name, definition|
-          _yaml_string.gsub!(reference_name) do
-            dependencies << definition.identifier
-            definition.identifier.digest
-          end
-        end
-        @public_asset_file_map.each do |reference_name, access_url|
-          _yaml_string.gsub!(reference_name, access_url)
-        end
-
-        ReadResult.new(dependencies, YAML.load(_yaml_string))
-      end
-    end
-
-    # mixed into resource classes with @yml:String
-    module ReadWithDependencies
-      # @param [YmlReader] reader
-      # @return [YmlReader::ReadResult]
-      def read(reader)
-        reader.read(@yml)
-      end
-    end
-
     def initialize(serial_number)
-      reader = YmlReader.new(serial_number)
-      dependent_configurations = Set.new
-      @activations = ActivationDefinition.for(serial_number).map do |definition|
-        result = definition.read(reader)
-        dependent_configurations.merge(result.dependencies)
+      @public_asset_details = Ddm::PublicAsset.details_for(serial_number)
 
-        DeclarationItem.new(
-          identifier: definition.identifier.digest,
-          type: result.yml['type'],
-          payload: result.yml.reject { |k, _| k == 'type' },
-        )
-      end
+      @activations = Ddm::Activation.for(serial_number)
 
-      dependent_assets = Set.new
-      dependent_reference_names = dependent_configurations.map(&:reference_name)
-      @configurations = ConfigurationDefinition.all.filter_map do |definition|
-        if dependent_reference_names.include?(definition.identifier.reference_name)
-          result = definition.read(reader)
-          dependent_assets.merge(result.dependencies)
-
-          DeclarationItem.new(
-            identifier: definition.identifier.digest,
-            type: result.yml['type'],
-            payload: result.yml.reject { |k, _| k == 'type' },
-          )
-        else
-          nil
+      configuration_resource_identifier_map = Ddm::Configuration.select(:id, :name).map do |configuration|
+        [configuration.resource_identifier.reference_name, configuration.id]
+      end.to_h
+      configuration_resource_identifiers = configuration_resource_identifier_map.keys
+      required_configurations_ids = Set.new
+      @activations.each do |activation|
+        required_configuration_resource_identifiers =
+          activation.collect_required_resource_identifiers_from(configuration_resource_identifiers)
+        required_configuration_resource_identifiers.each do |resource_identifier|
+          required_configurations_ids << configuration_resource_identifier_map[resource_identifier]
         end
       end
 
-      @assets = AssetDefinition.for(serial_number).map do |definition|
-        result = definition.read(reader)
+      @configurations = Ddm::Configuration.where(id: required_configurations_ids)
+
+      asset_resource_identifier_map = Ddm::Asset.select(:id, :name).map do |asset|
+        [asset.resource_identifier.reference_name, asset.id]
+      end.to_h
+      asset_resource_identifiers = asset_resource_identifier_map.keys
+      required_assets_ids = Set.new
+      @configurations.each do |configuration|
+        required_asset_resource_identifiers =
+          configuration.collect_required_resource_identifiers_from(asset_resource_identifiers)
+        required_asset_resource_identifiers.each do |resource_identifier|
+          required_assets_ids << asset_resource_identifier_map[resource_identifier]
+        end
+      end
+
+      @asset_details = Ddm::Asset.details_for(serial_number).where(ddm_asset_id: required_assets_ids)
+
+      @management_details = Ddm::Management.details_for(serial_number)
+
+      public_asset_url_map = @public_asset_details.map do |public_asset_detail|
+        [public_asset_detail.public_asset.reference_name, public_asset_detail.access_url]
+      end.to_h
+
+      configuration_map = @configurations.map do |configuration|
+        [configuration.resource_identifier.reference_name, configuration.resource_identifier.digest]
+      end.to_h
+
+      asset_map = @asset_details.map do |asset_detail|
+        [asset_detail.asset.resource_identifier.reference_name, asset_detail.asset.resource_identifier.digest]
+      end.to_h
+
+      @activation_declaration_items = @activations.map do |activation|
         DeclarationItem.new(
-          identifier: definition.identifier.digest,
-          type: result.yml['type'],
-          payload: result.yml.reject { |k, _| k == 'type' },
+          identifier: activation.resource_identifier.digest,
+          type: activation.type,
+          payload: activation.reference_identifier_resolved_payload(configuration_map),
         )
       end
 
-      @management = PropertyDefinition.for(serial_number).map do |definition|
-        result = definition.read(reader)
+      @configuration_declaration_items = @configurations.map do |configuration|
         DeclarationItem.new(
-          identifier: definition.identifier.digest,
-          type: result.yml['type'],
-          payload: result.yml.reject { |k, _| k == 'type' },
+          identifier: configuration.resource_identifier.digest,
+          type: configuration.type,
+          payload: configuration.reference_identifier_resolved_payload(asset_map.merge(public_asset_url_map)),
         )
       end
-    end
 
-    private def timestamp
-      Time.now
-    end
+      @asset_declaration_items = @asset_details.map do |asset_detail|
+        DeclarationItem.new(
+          identifier: asset_detail.asset.resource_identifier.digest,
+          type: asset_detail.asset.type,
+          payload: asset_detail.reference_identifier_resolved_payload(public_asset_url_map),
+        )
+      end
 
-    private def declarations_token
-      Digest::SHA256.hexdigest([
-          @activations.map(&:manifest),
-          @configurations.map(&:manifest),
-          @assets.map(&:manifest),
-          @management.map(&:manifest),
-      ].to_json)
+      @management_declaration_items = @management_details.map do |management_detail|
+        DeclarationItem.new(
+          identifier: management_detail.management.resource_identifier.digest,
+          type: management_detail.management.type,
+          payload: management_detail.payload,
+        )
+      end
     end
 
     def tokens
@@ -131,29 +96,44 @@ module DeclarativeManagement
       # https://github.com/apple/device-management/blob/release/declarative/protocol/declarationitemsresponse.yaml
       {
         Declarations: {
-          Activations: @activations.map(&:manifest),
-          Configurations: @configurations.map(&:manifest),
-          Assets: @assets.map(&:manifest),
-          Management: @management.map(&:manifest),
+          Activations: @activation_declaration_items.map(&:manifest),
+          Configurations: @configuration_declaration_items.map(&:manifest),
+          Assets: @asset_declaration_items.map(&:manifest),
+          Management: @management_declaration_items.map(&:manifest),
         },
         DeclarationsToken: declarations_token,
       }
     end
 
     def activation_detail_for(identifier)
-      @activations.find { |item| item.has_identifier?(identifier) }&.detail
+      @activation_declaration_items.find { |item| item.has_identifier?(identifier) }&.detail
     end
 
     def configuration_detail_for(identifier)
-      @configurations.find { |item| item.has_identifier?(identifier) }&.detail
+      @configuration_declaration_items.find { |item| item.has_identifier?(identifier) }&.detail
     end
 
     def asset_detail_for(identifier)
-      @assets.find { |item| item.has_identifier?(identifier) }&.detail
+      @asset_declaration_items.find { |item| item.has_identifier?(identifier) }&.detail
     end
 
     def management_detail_for(identifier)
-      @management.find { |item| item.has_identifier?(identifier) }&.detail
+      @management_declaration_items.find { |item| item.has_identifier?(identifier) }&.detail
+    end
+
+    private
+
+    def timestamp
+      Time.now
+    end
+
+    def declarations_token
+      Digest::SHA256.hexdigest([
+          @activation_declaration_items.map(&:manifest),
+          @configuration_declaration_items.map(&:manifest),
+          @asset_declaration_items.map(&:manifest),
+          @management_declaration_items.map(&:manifest),
+      ].to_json)
     end
   end
 end

@@ -7,5 +7,9 @@ module Ddm
     def self.details_for(ddm_identifier)
       PublicAssetDetail.for(ddm_identifier).preload(:public_asset)
     end
+
+    def reference_name
+      "@public/#{name}"
+    end
   end
 end

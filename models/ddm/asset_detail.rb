@@ -1,6 +1,7 @@
 module Ddm
   class AssetDetail < ActiveRecord::Base
-    self.inheritance_column = '__no_sti'
+    include ResourceIdentifierResolvable
+
     belongs_to :asset,
       class_name: Ddm::Asset.to_s,
       foreign_key: :ddm_asset_id
@@ -25,10 +26,6 @@ module Ddm
       end
 
       where(id: found_detail_by_asset_id.values.map(&:id))
-    end
-
-    def name
-      asset.name
     end
   end
 end

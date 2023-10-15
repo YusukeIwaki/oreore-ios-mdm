@@ -1,6 +1,5 @@
 module Ddm
   class ManagementDetail < ActiveRecord::Base
-    self.inheritance_column = '__no_sti'
     belongs_to :management,
       class_name: Ddm::Management.to_s,
       foreign_key: :ddm_management_id
@@ -25,10 +24,6 @@ module Ddm
       end
 
       where(id: found_detail_by_management_id.values.map(&:id))
-    end
-
-    def name
-      management.name
     end
   end
 end

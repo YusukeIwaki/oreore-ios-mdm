@@ -29,8 +29,8 @@ module Ddm
       where(id: found_detail_by_asset_id.values.map(&:id))
     end
 
-    def name
-      public_asset.name
+    def access_url
+      asset_file.url
     end
   end
 end

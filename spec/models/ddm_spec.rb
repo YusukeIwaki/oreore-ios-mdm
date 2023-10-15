@@ -124,10 +124,9 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
     Ddm::Asset.delete_all
     Ddm::AssetDetail.delete_all
 
-    asset = Ddm::Asset.create!(name: 'member_gmail')
+    asset = Ddm::Asset.create!(name: 'member_gmail', type: 'com.apple.asset.useridentity')
     asset.details.create!(
       target_identifier: 'SERIALNUMBER1',
-      type: 'com.apple.asset.useridentity',
       payload: {
         FullName: 'Serial1User',
         EmailAddress: 'seri1user@gmail.com',
@@ -136,7 +135,7 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
 
     asset_details = Ddm::Asset.details_for('SERIALNUMBER1')
     expect(asset_details.count).to eq(1)
-    expect(asset_details.first.name).to eq('member_gmail')
+    expect(asset_details.first.asset.name).to eq('member_gmail')
     expect(asset_details.first.payload['FullName']).to eq('Serial1User')
     expect(asset_details.first.payload['EmailAddress']).to eq('seri1user@gmail.com')
   end
@@ -153,39 +152,36 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
       group = Ddm::DeviceGroup.create!(name: 'group')
       group.items.create!(device_identifier: 'SERIALNUMBER2')
 
-      asset = Ddm::Asset.create!(name: 'member_gmail1')
+      asset = Ddm::Asset.create!(name: 'member_gmail1', type: 'com.apple.asset.useridentity')
       asset.details.create!(
         target_identifier: 'SERIALNUMBER1',
-        type: 'com.apple.asset.useridentity',
         payload: { FullName: 'user1', EmailAddress: 'user1@gmail.com' },
       )
       details = Ddm::Asset.details_for('SERIALNUMBER1')
       expect(details.size).to eq(1)
-      expect(details.first.name).to eq('member_gmail1')
+      expect(details.first.asset.name).to eq('member_gmail1')
       expect(details.first.payload['FullName']).to eq('user1')
 
-      asset = Ddm::Asset.create!(name: 'member_gmail2')
+      asset = Ddm::Asset.create!(name: 'member_gmail2', type: 'com.apple.asset.useridentity')
       asset.details.create!(
         target_identifier: 'group',
-        type: 'com.apple.asset.useridentity',
         payload: { FullName: 'group', EmailAddress: 'group@gmail.com' },
       )
       details = Ddm::Asset.details_for('SERIALNUMBER2')
       expect(details.size).to eq(1)
-      expect(details.first.name).to eq('member_gmail2')
+      expect(details.first.asset.name).to eq('member_gmail2')
       expect(details.first.payload['FullName']).to eq('group')
 
       expect(Ddm::Asset.details_for('SERIALNUMBER3')).to be_empty
 
-      asset = Ddm::Asset.create!(name: 'member_gmail3')
+      asset = Ddm::Asset.create!(name: 'member_gmail3', type: 'com.apple.asset.useridentity')
       asset.details.create!(
         target_identifier: nil,
-        type: 'com.apple.asset.useridentity',
         payload: { FullName: 'fallback', EmailAddress: 'fallback@gmail.com' },
       )
       details = Ddm::Asset.details_for('SERIALNUMBER3')
       expect(details.size).to eq(1)
-      expect(details.first.name).to eq('member_gmail3')
+      expect(details.first.asset.name).to eq('member_gmail3')
       expect(details.first.payload['FullName']).to eq('fallback')
     end
 
@@ -209,11 +205,10 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
         'SERIALNUMBER1' => ['user1', 'user1@gmail.com'],
         'SERIALNUMBER2' => ['user2', 'user2@gmail.com'],
       }
-      asset = Ddm::Asset.create!(name: 'member_gmail')
+      asset = Ddm::Asset.create!(name: 'member_gmail', type: 'com.apple.asset.useridentity')
       asset_def.to_a.shuffle.each do |target_identifier, info|
         asset.details.create!(
           target_identifier: target_identifier,
-          type: 'com.apple.asset.useridentity',
           payload: { FullName: info.first, EmailAddress: info.last },
         )
       end
@@ -235,30 +230,27 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
       group = Ddm::DeviceGroup.create!(name: 'group1')
       group.items.create!(device_identifier: 'SERIALNUMBER1')
 
-      asset1 = Ddm::Asset.create!(name: 'gmail1')
+      asset1 = Ddm::Asset.create!(name: 'gmail1', type: 'com.apple.asset.useridentity')
       asset1.details.create!(
         target_identifier: nil,
-        type: 'com.apple.asset.useridentity',
         payload: { FullName: 'default', EmailAddress: 'default@gmail.com' },
       )
 
-      asset2 = Ddm::Asset.create!(name: 'gmail2')
+      asset2 = Ddm::Asset.create!(name: 'gmail2', type: 'com.apple.asset.useridentity')
       asset2.details.create!(
         target_identifier: 'group1',
-        type: 'com.apple.asset.useridentity',
         payload: { FullName: 'group1', EmailAddress: 'group1@gmail.com' },
       )
 
-      asset3 = Ddm::Asset.create!(name: 'gmail3')
+      asset3 = Ddm::Asset.create!(name: 'gmail3', type: 'com.apple.asset.useridentity')
       asset3.details.create!(
         target_identifier: 'SERIALNUMBER1',
-        type: 'com.apple.asset.useridentity',
         payload: { FullName: 'user1', EmailAddress: 'user1@gmail.com' },
       )
 
       details = Ddm::Asset.details_for('SERIALNUMBER1')
       expect(details.size).to eq(3)
-      expect(details.map(&:name)).to contain_exactly('gmail1', 'gmail2', 'gmail3')
+      expect(details.map(&:asset).map(&:name)).to contain_exactly('gmail1', 'gmail2', 'gmail3')
       expect(details.map(&:payload).map { |payload| payload['EmailAddress'] }).to contain_exactly('default@gmail.com', 'group1@gmail.com', 'user1@gmail.com')
     end
   end
@@ -267,16 +259,15 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
     Ddm::Management.delete_all
     Ddm::ManagementDetail.delete_all
 
-    management = Ddm::Management.create!(name: 'age')
+    management = Ddm::Management.create!(name: 'age', type: 'com.apple.management.properties')
     management.details.create!(
       target_identifier: 'SERIALNUMBER1',
-      type: 'com.apple.management.properties',
       payload: { age: 31 },
     )
 
     management_details = Ddm::Management.details_for('SERIALNUMBER1')
     expect(management_details.count).to eq(1)
-    expect(management_details.first.name).to eq('age')
+    expect(management_details.first.management.name).to eq('age')
     expect(management_details.first.payload['age']).to eq(31)
   end
 
@@ -308,11 +299,10 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
         'SERIALNUMBER1' => ['user1', 51],
         'SERIALNUMBER2' => ['user2', 52],
       }
-      management = Ddm::Management.create!(name: 'age')
+      management = Ddm::Management.create!(name: 'age', type: 'com.apple.management.properties')
       management_def.to_a.shuffle.each do |target_identifier, info|
         management.details.create!(
           target_identifier: target_identifier,
-          type: 'com.apple.management.properties',
           payload: { age: info.last },
         )
       end
@@ -334,30 +324,27 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
       group = Ddm::DeviceGroup.create!(name: 'group1')
       group.items.create!(device_identifier: 'SERIALNUMBER1')
 
-      management1 = Ddm::Management.create!(name: 'age')
+      management1 = Ddm::Management.create!(name: 'age', type: 'com.apple.management.properties')
       management1.details.create!(
         target_identifier: nil,
-        type: 'com.apple.management.properties',
         payload: { age: 18 },
       )
 
-      management2 = Ddm::Management.create!(name: 'organization')
+      management2 = Ddm::Management.create!(name: 'organization', type: 'com.apple.management.properties')
       management2.details.create!(
         target_identifier: 'group1',
-        type: 'com.apple.management.properties',
         payload: { organization_unit: 'engineering' },
       )
 
-      management3 = Ddm::Management.create!(name: 'email')
+      management3 = Ddm::Management.create!(name: 'email', type: 'com.apple.management.properties')
       management3.details.create!(
         target_identifier: 'SERIALNUMBER1',
-        type: 'com.apple.management.properties',
         payload: { email: 'user1@gmail.com' },
       )
 
       details = Ddm::Management.details_for('SERIALNUMBER1')
       expect(details.size).to eq(3)
-      expect(details.map(&:name)).to contain_exactly('age', 'organization', 'email')
+      expect(details.map(&:management).map(&:name)).to contain_exactly('age', 'organization', 'email')
     end
   end
 
@@ -380,11 +367,12 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
       File.write(filepath, xml)
 
       file = Rack::Test::UploadedFile.new(filepath, 'application/x-plist')
-      asset = Ddm::PublicAsset.create!(name: 'test.plist')
+      asset = Ddm::PublicAsset.create!(name: 'test_profile')
       asset.details.create!(target_identifier: 'SERIALNUMBER1', asset_file: file)
 
       uploaded = Ddm::PublicAssetDetail.where(public_asset: asset).last
       expect(uploaded.asset_file.read).to eq(xml)
+      expect(uploaded.access_url).to end_with('.plist')
     end
   end
 
@@ -416,14 +404,14 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
       end
 
       public_asset_def = {
-        nil => ['fallback', 'test_fallback.xml'],
-        'group1' => ['group1', 'test_group.xml'],
-        'group2' => ['group2', 'test_group.xml'],
-        'group3' => ['group3', 'test_group.xml'],
-        'SERIALNUMBER1' => ['user1', 'test_user.xml'],
-        'SERIALNUMBER2' => ['user2', 'test_user.xml'],
+        nil => ['fallback', 'test_fallback.plist'],
+        'group1' => ['group1', 'test_group.plist'],
+        'group2' => ['group2', 'test_group.plist'],
+        'group3' => ['group3', 'test_group.plist'],
+        'SERIALNUMBER1' => ['user1', 'test_user.plist'],
+        'SERIALNUMBER2' => ['user2', 'test_user.plist'],
       }
-      public_asset = Ddm::PublicAsset.create!(name: 'test.plist')
+      public_asset = Ddm::PublicAsset.create!(name: 'test_profile')
       public_asset_def.to_a.shuffle.each do |target_identifier, info|
         filepath = File.join(@tmpdir, info.last)
         xml = <<~XML
@@ -447,16 +435,19 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
       expect(details.size).to eq(1)
       plist = Plist.parse_xml(details.first.asset_file.read)
       expect(plist['PayloadDisplayName']).to eq('user1')
+      expect(details.first.access_url).to end_with('.plist')
 
       details = Ddm::PublicAsset.details_for('SERIALNUMBER3')
       expect(details.size).to eq(1)
       plist = Plist.parse_xml(details.first.asset_file.read)
       expect(plist['PayloadDisplayName']).to eq('group1')
+      expect(details.first.access_url).to end_with('.plist')
 
       details = Ddm::PublicAsset.details_for('SERIALNUMBER4')
       expect(details.size).to eq(1)
       plist = Plist.parse_xml(details.first.asset_file.read)
       expect(plist['PayloadDisplayName']).to eq('fallback')
+      expect(details.first.access_url).to end_with('.plist')
     end
 
     it 'should return multiple public assets' do
@@ -481,7 +472,7 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
         </plist>
         XML
         File.write(filepath, xml)
-        public_asset = Ddm::PublicAsset.create!(name: "#{name}.plist")
+        public_asset = Ddm::PublicAsset.create!(name: "#{name}_profile")
         public_asset.details.create!(
           target_identifier: target_identifier,
           asset_file: Rack::Test::UploadedFile.new(filepath, 'application/x-plist'),
@@ -490,7 +481,7 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
 
       details = Ddm::PublicAsset.details_for('SERIALNUMBER1')
       expect(details.size).to eq(3)
-      expect(details.map(&:name)).to contain_exactly('test1.plist', 'test2.plist', 'test3.plist')
+      expect(details.map(&:public_asset).map(&:name)).to contain_exactly('test1_profile', 'test2_profile', 'test3_profile')
     end
   end
 end

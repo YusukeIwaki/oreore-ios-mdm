@@ -1,5 +1,7 @@
 module Ddm
   class Activation < ActiveRecord::Base
+    include ResourceIdentifierResolvable
+
     self.inheritance_column = '__no_sti'
     attribute :payload, :json
 
