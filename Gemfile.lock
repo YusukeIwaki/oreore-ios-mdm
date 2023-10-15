@@ -11,6 +11,8 @@ GEM
       i18n (>= 1.6, < 2)
       minitest (>= 5.1)
       tzinfo (~> 2.0)
+    addressable (2.8.5)
+      public_suffix (>= 2.0.2, < 6.0)
     apnotic (1.7.1)
       connection_pool (~> 2)
       net-http2 (>= 0.18.3, < 2)
@@ -18,9 +20,12 @@ GEM
     coderay (1.1.3)
     concurrent-ruby (1.2.2)
     connection_pool (2.4.0)
+    content_disposition (1.0.0)
     data_class_factory (1.0.0)
     diff-lcs (1.5.0)
     diffy (3.4.2)
+    down (5.4.1)
+      addressable (~> 2.8)
     faraday (2.7.4)
       faraday-net_http (>= 2.0, < 3.1)
       ruby2_keywords (>= 0.0.4)
@@ -65,6 +70,7 @@ GEM
     pry-byebug (3.10.1)
       byebug (~> 11.0)
       pry (>= 0.13, < 0.15)
+    public_suffix (5.0.3)
     puma (6.2.2)
       nio4r (~> 2.0)
     rack (2.2.7)
@@ -89,6 +95,9 @@ GEM
       rspec-support (~> 3.12.0)
     rspec-support (3.12.0)
     ruby2_keywords (0.0.5)
+    shrine (3.5.0)
+      content_disposition (~> 1.0)
+      down (~> 5.1)
     sinatra (3.0.6)
       mustermann (~> 3.0)
       rack (~> 2.2, >= 2.2.4)
@@ -128,6 +137,7 @@ DEPENDENCIES
   rack-test
   ridgepole
   rspec
+  shrine
   sinatra
   sinatra-activerecord
   zeitwerk

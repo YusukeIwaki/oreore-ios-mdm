@@ -8,4 +8,8 @@ class MdmDevice < ActiveRecord::Base
   end
 
   has_one :mdm_push_endpoint, dependent: :destroy
+
+  def ddm_identifier
+    serial_number
+  end
 end

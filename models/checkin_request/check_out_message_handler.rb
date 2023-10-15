@@ -19,7 +19,7 @@ module CheckinRequest
       CommandQueue.for_device(device).clear
       MdmCommandHistory.where(device_identifier: udid).destroy_all
       device.destroy!
-      DeclarativeManagement::SynchronizationRequestHistory.where(mdm_device: device).destroy_all
+      Ddm::SynchronizationRequestHistory.where(device_identifier: udid).destroy_all
     end
 
     private

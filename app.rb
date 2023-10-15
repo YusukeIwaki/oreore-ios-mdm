@@ -2,6 +2,7 @@ require 'bundler'
 Bundler.require :default, (ENV['RACK_ENV'] || :development).to_sym
 
 require_relative './config/active_record'
+require_relative './config/shrine'
 require_relative './config/zeitwerk'
 
 require 'sinatra/base'
@@ -71,20 +72,15 @@ class MdmServer < Sinatra::Base
     rb :'mdm.mobileconfig'
   end
 
-  get '/mdm/declarative/assets/:file' do
-    verbose_print_request
-    send_file File.join('declarations/public', params[:file])
-  end
-
   get '/mdm/declarative/assets/:file/:digest' do
     verbose_print_request
-    found = DeclarativeManagement::Declaration::PublicAssetFile.find_path_by_digested_path(File.join(params[:file], params[:digest]))
+    found = Ddm::PublicAssetDetail.find_by_path_params(params[:file], params[:digest])
 
     unless found
       halt 404, 'Not found'
     end
 
-    send_file found
+    send_file found.asset_file
   end
 
   put '/mdm/checkin' do
@@ -96,22 +92,21 @@ class MdmServer < Sinatra::Base
       unless plist['Endpoint']
         halt 400, 'Bad request'
       end
-      device = MdmDevice.find_by!(udid: plist['UDID'])
+      udid = plist['UDID']
+      device = MdmDevice.find_by!(udid: udid)
 
       endpoint = plist['Endpoint']
       data = plist['Data'] ? JSON.parse(plist['Data'].read) : nil
 
       logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
       content_type 'application/json'
-      router = DeclarativeManagementRouter.new(device)
+      router = DeclarativeManagementRouter.new(device.ddm_identifier)
       begin
         response = router.handle_request(endpoint, data)
-        DeclarativeManagement::SynchronizationRequestHistory.
-          log_response(device, endpoint, data, response)
+        Ddm::SynchronizationRequestHistory.log_response(udid, endpoint, data, response)
         return response.to_json
       rescue DeclarativeManagementRouter::RouteNotFound
-        DeclarativeManagement::SynchronizationRequestHistory.
-          log_404(device, endpoint, data)
+        Ddm::SynchronizationRequestHistory.log_404(udid, endpoint, data)
         halt 404, 'Not found'
       end
     end
@@ -474,22 +469,21 @@ class MdmAddeServer < Sinatra::Base
       unless plist['Endpoint']
         halt 400, 'Bad request'
       end
-      device = MdmDevice.find_by!(udid: plist['UDID'])
+      udid = plist['UDID']
+      device = MdmDevice.find_by!(udid: udid)
 
       endpoint = plist['Endpoint']
       data = plist['Data'] ? JSON.parse(plist['Data'].read) : nil
 
       logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
       content_type 'application/json'
-      router = DeclarativeManagementRouter.new(device)
+      router = DeclarativeManagementRouter.new(device.ddm_identifier)
       begin
         response = router.handle_request(endpoint, data)
-        DeclarativeManagement::SynchronizationRequestHistory.
-          log_response(device, endpoint, data, response)
+        Ddm::SynchronizationRequestHistory.log_response(udid, endpoint, data, response)
         return response.to_json
       rescue DeclarativeManagementRouter::RouteNotFound
-        DeclarativeManagement::SynchronizationRequestHistory.
-          log_404(device, endpoint, data)
+        Ddm::SynchronizationRequestHistory.log_404(udid, endpoint, data)
         halt 404, 'Not found'
       end
     end
@@ -728,10 +722,33 @@ class SimpleAdminConsole < Sinatra::Base
     redirect "/byod/devices/#{params[:enrollment_id]}"
   end
 
-  get '/device_groups/:id' do
+  get '/public_assets' do
     login_required
-    @device_group = DeviceGroup.find(params[:id])
-    erb :'/device_groups/edit.html'
+    erb :'public_assets/index.html'
+  end
+
+  post '/public_assets' do
+    login_required
+
+    public_asset = Ddm::PublicAsset.create!(name: params[:name])
+    redirect '/public_assets'
+  end
+
+  get '/public_assets/:id' do
+    login_required
+    erb :'public_assets/show.html'
+  end
+
+  post '/public_assets/:id/details' do
+    login_required
+
+    public_asset = Ddm::PublicAsset.find(params[:id])
+    public_asset.details.create!(
+      target_identifier: params[:target_identifier].presence,
+      asset_file: params[:asset_file],
+    )
+
+    redirect "/public_assets/#{params[:id]}"
   end
 end
 

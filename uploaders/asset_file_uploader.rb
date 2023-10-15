@@ -1,0 +1,3 @@
+class AssetFileUploader < Shrine
+
+end

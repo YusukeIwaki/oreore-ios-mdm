@@ -11,3 +11,6 @@
 /.DS_Store
 /.heroku.config
 /declarations
+/docker-compose.override.yml
+
+/public/uploads

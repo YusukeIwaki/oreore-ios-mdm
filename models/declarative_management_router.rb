@@ -1,7 +1,7 @@
 class DeclarativeManagementRouter
-  # @param [MdmDevice] mdm_device
-  def initialize(mdm_device)
-    @mdm_device = mdm_device
+  # @param [String] ddm_identifier
+  def initialize(ddm_identifier)
+    @ddm_identifier = ddm_identifier
   end
 
   class RouteNotFound < StandardError ; end
@@ -67,6 +67,6 @@ class DeclarativeManagementRouter
 
   # @return [DeclarativeManagement::Declaration]
   private def declaration
-    DeclarativeManagement::Declaration.new(@mdm_device.serial_number)
+    DeclarativeManagement::Declaration.new(@ddm_identifier)
   end
 end
