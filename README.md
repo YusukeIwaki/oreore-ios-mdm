@@ -65,132 +65,139 @@ Visit `https://<your domain>/mdm.mobileconfig`
 
 ## Declaration
 
-This app uses files and directories for defining declaration.
+UI is not implemented yet, so we have to prepare declaration using console.
 
-```
-declarations
-├── device_groups
-│   ├── group1.yml # containing an array of device serial numbers
-│   └── group2.yml
-│
-├── activations
-│   ├── SERIALNUMBER1 # applied to a specific device with SERIALNUMBER1
-│   │   └── apply_wifi_12345_profile.yml
-│   ├── apply_status_report_subscription.yml # applied to all devices
-│   └── group1 # applied to all devices in group1
-│       ├── apply_group1_gmail_for_iphone.yml
-│       └── apply_wifi_11111_profile.yml
-│
-├── configurations
-│   ├── group1_member_gmail.yml
-│   ├── status_report_subscription.yml
-│   ├── wifi_11111_profile.yml
-│   └── wifi_12345_profile.yml
-│
-├── assets
-│   ├── member_gmail
-│   │   ├── SERIALNUMBER1.yml # asset definition for SERIALNUMBER1
-│   │   ├── group1.yml # asset definition for all devices in group1 except for SERIALNUMBER1
-│   │   └── group2.yml # asset definition for all devices in group2 except for SERIALNUMBER1
-│   └── member_gmail.yml # asset definition for all devices except for SERIALNUMBER1 nor group1 nor group2
-│
-├── public
-│   ├── wifi_11111.mobileconfig
-│   └── wifi_12345.mobileconfig
-│
-└── properties
-    ├── age
-    │   ├── SERIALNUMBER1.yml # property definition for SERIALNUMBER1
-    │   └── group1.yml # property definition for all devices in group1 except for SERIALNUMBER1
-    ├── age.yml # property definition for all devices except for SERIALNUMBER1 nor group1
-    └── role
-        └── group1.yml
+### Defining device group
 
+```ruby
+group1 = DeviceGroup.create!(name: 'group1)
+group1.items.create!(device_identifier: 'SERIALNUMBER1')
+group1.items.create!(device_identifier: 'SERIALNUMBER2')
 ```
 
-### Device groups
+### Defining configuration
 
-Device groups definitions are put in `declarations/device_groups/*.yml`.
-Serial numbers for devices are listed simply.
-
-```group1.yml
-- SERIALNUMBER1
-- SERIALNUMBER2
-- SERIALNUMBER3
-```
-
-### Describe declaration items
-
-Each declaration item should have `Identifier`, `Type`, `Payload`, and `ServerToken` as is mentioned in [official reference](https://developer.apple.com/documentation/devicemanagement/leveraging_the_declarative_management_data_model_to_scale_devices#3993591) and [schema docs](https://github.com/apple/device-management/blob/release/declarative/declarations/declarationbase.yaml).
-
-In this app, each declaration item is described in a yaml file named `<resource class>/<item_name>.yml` with the content like below:
-
-```configurations/test_hogehoge.yml
-type: com.apple.configuration.management.test
-Echo: hogehoge
-```
-
-The rough pesudo code for generating declaration item is like below:
-
-```
-{
-  Identifier: uuid_from('configurations/test_hogehoge'),
-  Type: yaml['type'],
-  Payload: yaml.except('type'),
-  ServerToken: sha256_from(yaml),
-}
-```
-
-### Configurations
-
-Configuration definitions are put in `declarations/configurations/*.yml`.
-
-```wifi_11111_profile.yml
-type: com.apple.configuration.legacy
-ProfileURL: @public/wifi_11111.mobileconfig
+```ruby
+Ddm::Configuration.create!(
+  name: 'status_report_subscription',
+  type: 'com.apple.configuration.management.status-subscriptions',
+  payload: {
+    StatusItems: [
+      { Name: 'device.identifier.serial-number' },
+      { Name: 'device.identifier.udid' },
+      { Name: 'device.operating-system.build-version' },
+      { Name: 'device.operating-system.family' },
+      { Name: 'device.operating-system.marketing-name' },
+      { Name: 'device.operating-system.supplemental.build-version' },
+      { Name: 'device.operating-system.supplemental.extra-version' },
+      { Name: 'device.operating-system.version' },
+      { Name: 'management.declarations' },
+    ],
+  }
+)
 ```
 
 List of the configuration types are available at [apple/device-management](https://github.com/apple/device-management/tree/release/declarative/declarations/configurations) on GitHub.
 
-Note that `type` is not capitalized. Keys/values except for `type` is just passed into the payload of the configuration.
+We can define a configuration with assets.
 
-`@assets/some_asset` or `@public/your_file` is available for pointing a reference of asset or public file.
-
-### Activations
-
-Activation definitions are put in `declarations/activations/*.yml`.
-
-```apply_wifi_12345_profile.yml
-type: com.apple.activation.simple
-Predicate: "@status(device.model.family) == 'iPhone'"
-StandardConfigurations:
-  - @configurations/wifi_12345_profile
-  - @configurations/apply_status_report_subscription
+```ruby
+Ddm::Configuration.create!(
+  name: 'group1_member_gmail',
+  type: 'com.apple.configuration.account.google',
+  payload: {
+    VisibleName: 'Google Mail',
+    UserIdentityAssetReference: '@asset/group1_member_gmail',
+  }
+)
 ```
 
-`@configurations/test123` is automatically replaced with the identifier of the configuration defined in `configurations/test123.yml`.
-A device with a serial number 'SERIALNUMBER1' belonging to 'group1' would get all activations defined in
+`@asset/group1_member_gmail` is automatically replaced with the identifier of the asset defined in the asset named 'group1_member_gmail'.
 
-- `declarations/activations/SERIALNUMBER1/**.yml`
-- `declarations/activations/group1/**.yml`
-- in addition to `declarations/activations/**.yml`.
+We can also define a configuration with a reference to a public file.
 
-### Assets
+```ruby
+Ddm::Configuration.create!(
+  name: 'wifi_office_profile',
+  type: 'com.apple.configuration.legacy',
+  payload: {
+    ProfileURL: "@public/wifi_office",
+  }
+)
+```
 
-Asset definitions are put in `declarations/assets/*.yml`.
+`@public/wifi_office` is automatically replaced with the URL of the public file defined in the public asset named 'wifi_office.mobileconfig'.
 
-A device with a serial number 'SERIALNUMBER1' belonging to 'group1' would try to find a asset/property in with the name `declarations/assets/**/SERIALNUMBER1.yml`, then `declarations/assets/**/group1.yml` is evaluated when /SERIALNUMBER1.yml is absent, and then `declarations/assets/**.yml` is evaluated when both /SERIALNUMBER1.yml and /group1.yml are absent.
+### Defining activation
 
-This feature is really useful for defining an assets with different values for each device (e-mail addresses, device certificates, and so on).
+```ruby
+activation = Ddm::Activation.create!(
+  name: 'apply_wifi_office_profile',
+  type: 'com.apple.activation.simple',
+  predicate: "@status(device.model.family) == 'iPhone'",
+  standard_configurations: [
+    '@configuration/wifi_office_profile',
+    '@configuration/status_report_subscription',
+  ],
+)
 
-### Management properties
+# for applying to all devices
+activation.targets.create!(target_identifier: nil)
 
-Management property definitions are put in `declarations/properties/*.yml`.
-The logic for detecting the yml file is the same as assets.
+# for applying to a specific device group
+activation.targets.create!(target_identifier: 'group1')
 
-Note that each key should be appeared in only one property file as is mentioned [in the WWDC2022 movie](https://developer.apple.com/videos/play/wwdc2022/10046?time=1523).
+# for applying to a specific device
+activation.targets.create!(target_identifier: 'SERIALNUMBER1')
+```
 
-> Multiple management properties declarations can be sent to the device, but the keys should be unique across all of them.
+Configuration can be referred by `@configuration/<configuration name>`.
+
+### Defining asset
+
+Asset can be separately distributed to a specific device or a specific device group.
+
+```ruby
+asset_def = Ddm::Asset.create!(name: 'group1_member_gmail')
+
+# asset definition for a specific device
+asset_def.details.create!(
+  target_identifier: 'SERIALNUMBER1',
+  payload: { EmailAddress: 'user1@gmail.com' }
+)
+
+# asset definition for a specific device group except for a specific device
+asset_def.details.create!(
+  target_identifier: 'group',
+  payload: { EmailAddress: 'group@gmail.com' }
+)
+
+# asset definition for all devices except for a specific device nor a specific device group
+asset_def.details.create!(
+  target_identifier: nil,
+  payload: { EmailAddress: 'default@gmail.com' }
+)
+```
+
+### Defining management property
+
+Management property can be separately distributed to a specific device or a specific device group, just like assets.
+
+```ruby
+property_def = Ddm::Property.create!(name: 'age')
+property_def.details.create!(
+  target_identifier: 'born_in_1990',
+  payload: { age: 31 }
+)
+property_def.details.create!(
+  target_identifier: 'born_in_2000',
+  payload: { age: 21 }
+)
+```
+
+### Describe declaration items
+
+Each declaration item should have `type`, `payload`. Please refer [official reference](https://developer.apple.com/documentation/devicemanagement/leveraging_the_declarative_management_data_model_to_scale_devices#3993591) and [schema docs](https://github.com/apple/device-management/blob/release/declarative/declarations/declarationbase.yaml) to understand which one to use.
 
 ### Re-distribute the declaration after updating it
 
