@@ -23,7 +23,7 @@ describe DeclarativeManagementRouter do
       imei: '351111112222223',
     )
   }
-  let(:router) { DeclarativeManagementRouter.new(mdm_device) }
+  let(:router) { DeclarativeManagementRouter.new(mdm_device.ddm_identifier) }
 
   context 'example' do
     around do |example|
