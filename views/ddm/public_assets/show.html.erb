@@ -13,7 +13,7 @@
   </div>
 
   <h3>New asset file</h3>
-  <form class="card p-3" action="/public_assets/<%= @public_asset.id %>/details" method="post" enctype="multipart/form-data">
+  <form class="card p-3" action="/ddm/public_assets/<%= @public_asset.id %>/details" method="post" enctype="multipart/form-data">
     <div class="mb-3">
       <label for="form_name" class="form-label">Target (serial_number, group_name, or blank for all devices)</label>
       <input id="form_name" name="name" type="text" class="form-control">

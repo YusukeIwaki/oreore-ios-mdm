@@ -1,15 +1,16 @@
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; Public assets
 <div class="container">
   <h2>Public assets</h2>
   <div class="list-group">
   <% Ddm::PublicAsset.order(:name).preload(:details).each do |public_asset| %>
-    <a href="/public_assets/<%= public_asset.id %>" class="list-group-item list-group-item-action">
+    <a href="/ddm/public_assets/<%= public_asset.id %>" class="list-group-item list-group-item-action">
     <%= public_asset.name %>
     </a>
   <% end %>
   </div>
 
   <h3>New asset</h3>
-  <form class="card p-3" action="/public_assets" method="post">
+  <form class="card p-3" action="/ddm/public_assets" method="post">
     <div class="mb-3">
       <label for="form_name" class="form-label">Name</label>
       <input id="form_name" name="name" type="text" class="form-control" required>

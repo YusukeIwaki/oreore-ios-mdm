@@ -723,24 +723,52 @@ class SimpleAdminConsole < Sinatra::Base
     redirect "/byod/devices/#{params[:enrollment_id]}"
   end
 
-  get '/public_assets' do
-    login_required
-    erb :'public_assets/index.html'
+  get '/ddm' do
+    erb :'ddm/index.html'
   end
 
-  post '/public_assets' do
+  get '/ddm/device_groups' do
+    erb :'ddm/device_groups/index.html'
+  end
+
+  get '/ddm/activations' do
+    erb :'ddm/activations/index.html'
+  end
+
+  get '/ddm/configurations' do
+    erb :'ddm/configurations/index.html'
+  end
+
+  get '/ddm/configurations' do
+    erb :'ddm/configurations/index.html'
+  end
+
+  get '/ddm/managements' do
+    erb :'ddm/managements/index.html'
+  end
+
+  get '/ddm/assets' do
+    erb :'ddm/assets/index.html'
+  end
+
+  get '/ddm/public_assets' do
+    login_required
+    erb :'ddm/public_assets/index.html'
+  end
+
+  post '/ddm/public_assets' do
     login_required
 
     public_asset = Ddm::PublicAsset.create!(name: params[:name])
-    redirect '/public_assets'
+    redirect '/ddm/public_assets'
   end
 
-  get '/public_assets/:id' do
+  get '/ddm/public_assets/:id' do
     login_required
-    erb :'public_assets/show.html'
+    erb :'ddm/public_assets/show.html'
   end
 
-  post '/public_assets/:id/details' do
+  post '/ddm/public_assets/:id/details' do
     login_required
 
     public_asset = Ddm::PublicAsset.find(params[:id])
@@ -749,7 +777,7 @@ class SimpleAdminConsole < Sinatra::Base
       asset_file: params[:asset_file],
     )
 
-    redirect "/public_assets/#{params[:id]}"
+    redirect "/ddm/public_assets/#{params[:id]}"
   end
 end
 
