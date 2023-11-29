@@ -676,7 +676,8 @@ class SimpleAdminConsole < Sinatra::Base
       command = Command::DeclarativeManagement.new(tokens: declaration.tokens)
       command.request_payload.to_plist
     elsif params[:class] && Command.const_defined?(params[:class])
-      command = Command.const_get(params[:class]).new
+      klass = Command.const_get(params[:class])
+      command = klass.try(:template_new) || klass.new
       command.request_payload.to_plist
     else
       ''
