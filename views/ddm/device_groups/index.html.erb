@@ -2,3 +2,17 @@
 
 <div class="container">
 <h2>Device groups</h2>
+
+<div class="list-group">
+<% Ddm::DeviceGroup.preload(:items).each do |group| %>
+  <a href="/ddm/device_groups/<%= group.id %>" class="list-group-item list-group-item-action">
+  <%= group.name %>
+  <ul>
+  <% group.items.each do |item| %>
+      <li><%= item.device_identifier %></li>
+  <% end %>
+  </ul>
+  </a>
+<% end %>
+<a href="/ddm/device_groups/new" class="list-group-item list-group-item-action">+ Add device group</a>
+</div>

@@ -731,6 +731,58 @@ class SimpleAdminConsole < Sinatra::Base
     erb :'ddm/device_groups/index.html'
   end
 
+  post '/ddm/device_groups' do
+    serial_numbers = params[:serial_numbers].split("\n").filter_map { |s| s.presence&.strip }
+    if serial_numbers.empty?
+      Ddm::DeviceGroup.create!(name: params[:name])
+    else
+      timestamp = Time.current
+      ActiveRecord::Base.transaction do
+        group = Ddm::DeviceGroup.create!(name: params[:name])
+        Ddm::DeviceGroupItem.insert_all!(
+          serial_numbers.map do |serial_number|
+            {
+              ddm_device_group_id: group.id,
+              device_identifier: serial_number,
+              created_at: timestamp,
+            }
+          end
+        )
+      end
+    end
+    redirect '/ddm/device_groups'
+  end
+
+  get '/ddm/device_groups/:id' do
+    erb :'ddm/device_groups/show.html'
+  end
+
+  post '/ddm/device_groups/:id' do
+    group = Ddm::DeviceGroup.find(params[:id])
+    serial_numbers = params[:serial_numbers].split("\n").filter_map { |s| s.presence&.strip }
+    if serial_numbers.empty?
+      Ddm::DeviceGroupItem.where(device_group: group).delete_all
+    else
+      new_serial_numbers = serial_numbers - group.items.pluck(:device_identifier)
+      unless new_serial_numbers.empty?
+        timestamp = Time.current
+        ActiveRecord::Base.transaction do
+          Ddm::DeviceGroupItem.where(device_group: group).where.not(device_identifier: serial_numbers).delete_all
+          Ddm::DeviceGroupItem.insert_all!(
+            new_serial_numbers.map do |serial_number|
+              {
+                ddm_device_group_id: group.id,
+                device_identifier: serial_number,
+                created_at: timestamp,
+              }
+            end
+          )
+        end
+      end
+    end
+    redirect "/ddm/device_groups/#{params[:id]}"
+  end
+
   get '/ddm/activations' do
     erb :'ddm/activations/index.html'
   end

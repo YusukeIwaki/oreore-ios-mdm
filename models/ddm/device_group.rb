@@ -1,5 +1,7 @@
 module Ddm
   class DeviceGroup < ActiveRecord::Base
+    validates :name, presence: true, uniqueness: true
+
     has_many :items,
       class_name: Ddm::DeviceGroupItem.to_s,
       foreign_key: :ddm_device_group_id
