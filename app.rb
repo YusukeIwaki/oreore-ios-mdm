@@ -791,8 +791,25 @@ class SimpleAdminConsole < Sinatra::Base
     erb :'ddm/configurations/index.html'
   end
 
-  get '/ddm/configurations' do
-    erb :'ddm/configurations/index.html'
+  post '/ddm/configurations' do
+    payload = YAML.load(params[:payload])
+    configuration = Ddm::Configuration.create!(
+      name: params[:name],
+      type: params[:type],
+      payload: payload,
+    )
+    redirect "/ddm/configurations"
+  end
+
+  get '/ddm/configurations/:id' do
+    erb :'ddm/configurations/show.html'
+  end
+
+  post '/ddm/configurations/:id' do
+    configuration = Ddm::Configuration.find(params[:id])
+    payload = YAML.load(params[:payload])
+    configuration.update!(type: params[:type], payload: payload)
+    redirect "/ddm/configurations/#{params[:id]}"
   end
 
   get '/ddm/managements' do

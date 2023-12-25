@@ -1,0 +1,41 @@
+<%
+@configuration =
+  if params[:id] == 'new'
+    Ddm::Configuration.new
+  else
+    Ddm::Configuration.find(params[:id])
+  end
+@form_post_url =
+  if @configuration.new_record?
+    '/ddm/configurations'
+  else
+    "/ddm/configurations/#{params[:id]}"
+  end
+%>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/configurations">Configurations</a> &gt; <%= @configuration.name %>
+
+<div class="container">
+<h2>Configuration: <%= @configuration.name %></h2>
+
+<form action="<%= @form_post_url %>" method="post">
+  <% if @configuration.new_record? %>
+  <div class="mb-3">
+    <label for="input_name" class="form-label">Name</label>
+    <input type="text" class="form-control" id="input_name" name="name" value="<%= @configuration.name %>">
+  </div>
+  <% end %>
+
+  <div class="mb-3">
+    <label for="input_type" class="form-label">Type</label>
+    <input type="text" class="form-control" id="input_type" name="type" value="<%= @configuration.type %>">
+  </div>
+
+  <div class="mb-3">
+    <label for="input_payload" class="form-label">Payload</label>
+    <textarea class="form-control" id="input_payload" name="payload" rows="20"><%=
+    @configuration.payload.to_yaml
+    %></textarea>
+  </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+</div>
