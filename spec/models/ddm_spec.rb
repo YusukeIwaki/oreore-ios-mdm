@@ -372,7 +372,6 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
 
       uploaded = Ddm::PublicAssetDetail.where(public_asset: asset).last
       expect(uploaded.asset_file.read).to eq(xml)
-      expect(uploaded.access_url).to end_with('.plist')
     end
   end
 
@@ -435,19 +434,16 @@ RSpec.describe 'declarative device management', skip: ENV['CI'] do
       expect(details.size).to eq(1)
       plist = Plist.parse_xml(details.first.asset_file.read)
       expect(plist['PayloadDisplayName']).to eq('user1')
-      expect(details.first.access_url).to end_with('.plist')
 
       details = Ddm::PublicAsset.details_for('SERIALNUMBER3')
       expect(details.size).to eq(1)
       plist = Plist.parse_xml(details.first.asset_file.read)
       expect(plist['PayloadDisplayName']).to eq('group1')
-      expect(details.first.access_url).to end_with('.plist')
 
       details = Ddm::PublicAsset.details_for('SERIALNUMBER4')
       expect(details.size).to eq(1)
       plist = Plist.parse_xml(details.first.asset_file.read)
       expect(plist['PayloadDisplayName']).to eq('fallback')
-      expect(details.first.access_url).to end_with('.plist')
     end
 
     it 'should return multiple public assets' do

@@ -30,12 +30,7 @@ module Ddm
     end
 
     def access_url
-      uri = URI(asset_file.url)
-      if uri.scheme
-        uri.to_s
-      else
-        "#{ENV['MDM_SERVER_BASE_URL']}#{uri}"
-      end
+      asset_file.download_url(host: ENV['MDM_SERVER_BASE_URL'])
     end
   end
 end

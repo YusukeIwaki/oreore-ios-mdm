@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe 'POST /ddm/configurations' do
+describe 'POST /ddm/configurations', logged_in: true do
   before {
     Ddm::Configuration.delete_all
   }
@@ -56,7 +56,7 @@ describe 'POST /ddm/configurations' do
   end
 end
 
-describe 'POST /ddm/configurations/:id' do
+describe 'POST /ddm/configurations/:id', logged_in: true do
   before {
     Ddm::Configuration.delete_all
   }

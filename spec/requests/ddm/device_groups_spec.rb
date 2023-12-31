@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe 'POST /ddm/device_groups' do
+describe 'POST /ddm/device_groups', logged_in: true do
   before {
     Ddm::DeviceGroup.delete_all
     Ddm::DeviceGroupItem.delete_all
@@ -27,7 +27,7 @@ describe 'POST /ddm/device_groups' do
   end
 end
 
-describe 'POST /ddm/device_groups/:id' do
+describe 'POST /ddm/device_groups/:id', logged_in: true do
   before {
     Ddm::DeviceGroup.delete_all
     Ddm::DeviceGroupItem.delete_all

@@ -72,15 +72,9 @@ class MdmServer < Sinatra::Base
     rb :'mdm.mobileconfig'
   end
 
-  get '/mdm/declarative/assets/:file/:digest' do
+  get '/asset_files/*rest' do
     verbose_print_request
-    found = Ddm::PublicAssetDetail.find_by_path_params(params[:file], params[:digest])
-
-    unless found
-      halt 404, 'Not found'
-    end
-
-    send_file found.asset_file
+    AssetFileUploader.download_response(request.env)
   end
 
   put '/mdm/checkin' do
@@ -288,10 +282,14 @@ class MdmByodServer < Sinatra::Base
     end
 
     if plist['EnrollmentID'].present?
-      # Record usage and block access from other devices.
-      ManagedAppleAccountAccessTokenUsage.
-        find_or_initialize_by(device_identifier: plist['EnrollmentID']).
-        update!(managed_apple_account_access_token: current_access_token)
+      begin
+        # Record usage and block access from other devices.
+        ManagedAppleAccountAccessTokenUsage.
+          find_or_initialize_by(device_identifier: plist['EnrollmentID']).
+          update!(managed_apple_account_access_token: current_access_token)
+      rescue ActiveRecord::RecordNotUnique
+        halt 400, 'Access token is already used by another device'
+      end
     end
 
     message_handler =
@@ -323,10 +321,14 @@ class MdmByodServer < Sinatra::Base
       halt 400, 'Bad request'
     end
 
-    # Record usage and block access from other devices.
-    ManagedAppleAccountAccessTokenUsage.
-      find_or_initialize_by(device_identifier: enrollment_id).
-      update!(managed_apple_account_access_token: current_access_token)
+    begin
+      # Record usage and block access from other devices.
+      ManagedAppleAccountAccessTokenUsage.
+        find_or_initialize_by(device_identifier: enrollment_id).
+        update!(managed_apple_account_access_token: current_access_token)
+    rescue ActiveRecord::RecordNotUnique
+      halt 400, 'Access token is already used by another device'
+    end
 
     device = ByodDevice.find_by!(enrollment_id: enrollment_id)
     command_queue = CommandQueue.for_byod_device(device)
@@ -493,10 +495,14 @@ class MdmAddeServer < Sinatra::Base
     end
 
     if plist['UDID'].present?
-      # Record usage and block access from other devices.
-      ManagedAppleAccountAccessTokenUsage.
-        find_or_initialize_by(device_identifier: plist['UDID']).
-        update!(managed_apple_account_access_token: current_access_token)
+      begin
+        # Record usage and block access from other devices.
+        ManagedAppleAccountAccessTokenUsage.
+          find_or_initialize_by(device_identifier: plist['UDID']).
+          update!(managed_apple_account_access_token: current_access_token)
+      rescue ActiveRecord::RecordNotUnique
+        halt 400, 'Access token is already used by another device'
+      end
     end
 
     message_handler =
@@ -528,10 +534,14 @@ class MdmAddeServer < Sinatra::Base
       halt 400, 'Bad request'
     end
 
-    # Record usage and block access from other devices.
-    ManagedAppleAccountAccessTokenUsage.
-      find_or_initialize_by(device_identifier: udid).
-      update!(managed_apple_account_access_token: current_access_token)
+    begin
+      # Record usage and block access from other devices.
+      ManagedAppleAccountAccessTokenUsage.
+        find_or_initialize_by(device_identifier: udid).
+        update!(managed_apple_account_access_token: current_access_token)
+    rescue ActiveRecord::RecordNotUnique
+      halt 400, 'Access token is already used by another device'
+    end
 
     device = MdmDevice.find_by!(udid: udid)
     command_queue = CommandQueue.for_device(device)
@@ -724,14 +734,17 @@ class SimpleAdminConsole < Sinatra::Base
   end
 
   get '/ddm' do
+    login_required
     erb :'ddm/index.html'
   end
 
   get '/ddm/device_groups' do
+    login_required
     erb :'ddm/device_groups/index.html'
   end
 
   post '/ddm/device_groups' do
+    login_required
     serial_numbers = params[:serial_numbers].split("\n").filter_map { |s| s.presence&.strip }
     if serial_numbers.empty?
       Ddm::DeviceGroup.create!(name: params[:name])
@@ -754,10 +767,12 @@ class SimpleAdminConsole < Sinatra::Base
   end
 
   get '/ddm/device_groups/:id' do
+    login_required
     erb :'ddm/device_groups/show.html'
   end
 
   post '/ddm/device_groups/:id' do
+    login_required
     group = Ddm::DeviceGroup.find(params[:id])
     serial_numbers = params[:serial_numbers].split("\n").filter_map { |s| s.presence&.strip }
     if serial_numbers.empty?
@@ -784,14 +799,17 @@ class SimpleAdminConsole < Sinatra::Base
   end
 
   get '/ddm/activations' do
+    login_required
     erb :'ddm/activations/index.html'
   end
 
   get '/ddm/configurations' do
+    login_required
     erb :'ddm/configurations/index.html'
   end
 
   post '/ddm/configurations' do
+    login_required
     payload = YAML.load(params[:payload])
     configuration = Ddm::Configuration.create!(
       name: params[:name],
@@ -802,10 +820,12 @@ class SimpleAdminConsole < Sinatra::Base
   end
 
   get '/ddm/configurations/:id' do
+    login_required
     erb :'ddm/configurations/show.html'
   end
 
   post '/ddm/configurations/:id' do
+    login_required
     configuration = Ddm::Configuration.find(params[:id])
     payload = YAML.load(params[:payload])
     configuration.update!(type: params[:type], payload: payload)
@@ -841,10 +861,8 @@ class SimpleAdminConsole < Sinatra::Base
     login_required
 
     public_asset = Ddm::PublicAsset.find(params[:id])
-    public_asset.details.create!(
-      target_identifier: params[:target_identifier].presence,
-      asset_file: params[:asset_file],
-    )
+    detail = public_asset.details.find_or_initialize_by(target_identifier: params[:target_identifier].presence)
+    detail.update!(asset_file: params[:asset_file])
 
     redirect "/ddm/public_assets/#{params[:id]}"
   end

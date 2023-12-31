@@ -3,8 +3,13 @@ services:
   web:
     build: .
     depends_on:
+      - azurite
       - postgres
     environment:
+      - AZURE_STORAGE_ACCOUNT=devstoreaccount1
+      - AZURE_STORAGE_ACCESS_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+      - AZURE_STORAGE_BLOB_HOST=http://azurite:10000/devstoreaccount1
+      - AZURE_STORAGE_CONTAINER_NAME=oreore-ios-mdm
       - DATABASE_URL=postgres://pguser:pgpassword@postgres:5432/pguser
       - GOOGLE_CLIENT_ID
       - GOOGLE_CLIENT_SECRET
@@ -44,7 +49,27 @@ services:
       POSTGRES_PASSWORD: pgpassword
       POSTGRES_DB: pguser
 
+  azure-cli:
+    image: mcr.microsoft.com/azure-cli
+    environment:
+      AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+    depends_on:
+      - azurite
+    tty: true
+    stdin_open: true
+    working_dir: /scripts
+    command: /bin/bash
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 -l /azurite
+    working_dir: /azurite
+    volumes:
+      - azurite-data:/azurite
+
 volumes:
+  azurite-data:
+    driver: local
   bundle-data:
     driver: local
   pg-data:
