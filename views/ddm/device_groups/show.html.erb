@@ -17,14 +17,18 @@
 <div class="container">
 <h2>Device group: <%= @group.name %></h2>
 
+
 <form action="<%= @form_post_url %>" method="post">
 
-<% if @group.new_record? %>
 <div class="mb-3">
   <label for="input_name" class="form-label">Name</label>
+  <% if @group.new_record? %>
   <input type="text" class="form-control" id="input_name" name="name" value="<%= @group.name %>">
+  <% else %>
+  <input type="text" class="form-control" id="input_name" name="name" value="<%= @group.name %>" disabled>
+  <a href="/ddm/device_groups/<%= @group.id %>/rename">Rename</a>
+  <% end %>
 </div>
-<% end %>
 
 <div class="mb-3">
   <label for="input_serial_numbers" class="form-label">Device serial numbers</label>

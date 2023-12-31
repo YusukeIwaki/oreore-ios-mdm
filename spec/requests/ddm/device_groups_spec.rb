@@ -75,3 +75,27 @@ describe 'POST /ddm/device_groups/:id', logged_in: true do
     expect(Ddm::DeviceGroupItem.where(device_group: group).count).to eq(0)
   end
 end
+
+describe 'POST /ddm/device_groups/:id/rename', logged_in: true do
+  before {
+    Ddm::DeviceGroup.delete_all
+    Ddm::DeviceGroupItem.delete_all
+  }
+
+  it 'should rename a device group' do
+    group = Ddm::DeviceGroup.create!(name: 'group1')
+    post "/ddm/device_groups/#{group.id}/rename", { name: "group2" }
+    group.reload
+    expect(group.name).to eq('group2')
+  end
+
+  it 'should not accept existing group name' do
+    group = Ddm::DeviceGroup.create!(name: 'group1')
+    group2 = Ddm::DeviceGroup.create!(name: 'group2')
+    expect {
+      post "/ddm/device_groups/#{group.id}/rename", { name: "group2" }
+    }.to raise_error
+    group.reload
+    expect(group.name).to eq('group1')
+  end
+end

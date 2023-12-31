@@ -798,6 +798,18 @@ class SimpleAdminConsole < Sinatra::Base
     redirect "/ddm/device_groups/#{params[:id]}"
   end
 
+  get '/ddm/device_groups/:id/rename' do
+    login_required
+    erb :'ddm/device_groups/rename.html'
+  end
+
+  post '/ddm/device_groups/:id/rename' do
+    login_required
+    group = Ddm::DeviceGroup.find(params[:id])
+    group.update!(name: params[:name])
+    redirect "/ddm/device_groups/#{params[:id]}"
+  end
+
   get '/ddm/activations' do
     login_required
     erb :'ddm/activations/index.html'
