@@ -5,7 +5,7 @@
 - GOOGLE_CLIENT_ID
 - GOOGLE_CLIENT_SECRET
 
-and set allowed user names like this: `export GOOGLE_ALLOWED_USERS=test@gmail.com,iwaki@example.com
+and set allowed user names like this: `export GOOGLE_ALLOWED_USERS=test@gmail.com,iwaki@example.com` or `export GOOGLE_ALLOWED_DOMAINS=mail1.example.com,mail2.example.com`
 
 ## Prepare MDM push certificate
 
@@ -65,7 +65,7 @@ Visit `https://<your domain>/mdm.mobileconfig`
 
 ## Declaration
 
-UI is not implemented yet, so we have to prepare declaration using console.
+UI is available on `https://<your domain>/ddm`, however bulk-insert is hard to do with web-UI. So we can also prepare declaration using console.
 
 ### Defining device group
 
