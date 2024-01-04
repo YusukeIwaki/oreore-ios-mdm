@@ -167,7 +167,7 @@ add_index 'ddm_configurations',
 
 create_table 'ddm_assets', force: :cascade do |t|
   t.string 'name', null: false
-  t.string 'type', null: false, default: 'com.apple.asset.useridentity'
+  t.string 'type', null: false
   t.datetime 'created_at', null: false
 end
 

@@ -868,7 +868,32 @@ class SimpleAdminConsole < Sinatra::Base
   end
 
   get '/ddm/assets' do
+    login_required
     erb :'ddm/assets/index.html'
+  end
+
+  post '/ddm/assets' do
+    login_required
+    asset = Ddm::Asset.create!(name: params[:name], type: params[:type])
+    redirect '/ddm/assets'
+  end
+
+  get '/ddm/assets/:id/details' do
+    login_required
+    erb :'ddm/assets/details.html'
+  end
+
+  get '/ddm/assets/:id/details/:detail_id' do
+    login_required
+    erb :'ddm/assets/details.html'
+  end
+
+  post '/ddm/assets/:id/details' do
+    login_required
+    asset = Ddm::Asset.find(params[:id])
+    detail = asset.details.find_or_initialize_by(target_identifier: params[:target_identifier].presence)
+    detail.update!(payload: YAML.load(params[:payload]))
+    redirect "/ddm/assets/#{asset.id}/details"
   end
 
   get '/ddm/public_assets' do
@@ -895,7 +920,7 @@ class SimpleAdminConsole < Sinatra::Base
     detail = public_asset.details.find_or_initialize_by(target_identifier: params[:target_identifier].presence)
     detail.update!(asset_file: params[:asset_file])
 
-    redirect "/ddm/public_assets/#{params[:id]}"
+    redirect "/ddm/public_assets/#{public_asset.id}"
   end
 end
 

@@ -11,18 +11,15 @@ module Ddm
       where(id: ids)
     end
 
-    def self.priority_sort_map
+    def self.target_options
       Enumerator.new do |out|
-        group_names = []
-        preload(:items).each do |group|
-          group_names << group.name
-          group.items.each do |item|
-            out << item.device_identifier
-          end
+        order(:name).pluck(:name).each do |device_group_name|
+          out << device_group_name
         end
-        group_names.each(&out)
-        out << nil
-      end.to_a
+        MdmDevice.order(:serial_number).pluck(:serial_number).each do |serial_number|
+          out << serial_number
+        end
+      end
     end
   end
 end

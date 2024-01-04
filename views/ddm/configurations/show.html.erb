@@ -12,10 +12,10 @@
     "/ddm/configurations/#{params[:id]}"
   end
 %>
-<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/configurations">Configurations</a> &gt; <%= @configuration.name %>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/configurations">Configurations</a> &gt; <%= @configuration.name || 'NEW' %>
 
 <div class="container">
-<h2>Configuration: <%= @configuration.name %></h2>
+<h2>Configuration: <%= @configuration.name || 'NEW' %></h2>
 
 <form action="<%= @form_post_url %>" method="post">
   <% if @configuration.new_record? %>

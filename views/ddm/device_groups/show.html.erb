@@ -12,10 +12,10 @@
     "/ddm/device_groups/#{params[:id]}"
   end
 %>
-<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/device_groups">Device groups</a> &gt; <%= @group.name %>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/device_groups">Device groups</a> &gt; <%= @group.name || 'NEW' %>
 
 <div class="container">
-<h2>Device group: <%= @group.name %></h2>
+<h2>Device group: <%= @group.name || 'NEW' %></h2>
 
 
 <form action="<%= @form_post_url %>" method="post">

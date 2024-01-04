@@ -1,6 +1,8 @@
 <%
 @public_asset = Ddm::PublicAsset.find(params[:id])
 %>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/public_assets">Public assets</a> &gt; <%= @public_asset.name %>
+
 <div class="container">
   <h2>Public assets - <%= @public_asset.name %></h2>
   <div class="list-group">
@@ -18,11 +20,8 @@
       <label for="form_name" class="form-label">Target (serial_number, group_name, or blank for all devices)</label>
       <input id="form_name" name="name" list="target_options" type="text" class="form-control">
       <datalist id="target_options">
-      <% Ddm::DeviceGroup.order(:name).pluck(:name).each do |device_group_name| %>
-        <option value="<%= device_group_name %>">
-      <% end %>
-      <% MdmDevice.order(:serial_number).pluck(:serial_number).each do |serial_number| %>
-        <option value="<%= serial_number %>">
+      <% Ddm::DeviceGroup.target_options.each do |value| %>
+        <option value="<%= value %>">
       <% end %>
       </datalist>
     </div>

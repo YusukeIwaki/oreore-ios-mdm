@@ -4,6 +4,9 @@ module Ddm
     has_many :details,
       class_name: Ddm::AssetDetail.to_s,
       foreign_key: :ddm_asset_id
+    include DetailsPrioritySorted
+    validates :name, presence: true, uniqueness: true
+    validates :type, presence: true
 
     def self.details_for(ddm_identifier)
       AssetDetail.for(ddm_identifier).preload(:asset)

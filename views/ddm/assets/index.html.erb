@@ -1,0 +1,35 @@
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; Assets
+
+<div class="container">
+<h2>Assets</h2>
+
+<div class="list-group">
+<% Ddm::Asset.details_priority_sorted.each do |asset, details| %>
+  <a href="/ddm/assets/<%= asset.id %>/details" class="list-group-item list-group-item-action">
+  <%= asset.name %>
+    <ul>
+    <% details.each do |asset_detail| %>
+      <li>
+        [<%= asset_detail.target_identifier || 'FALLBACK' %>]
+        <pre><%= { 'type' => asset.type }.merge(asset_detail.payload).to_yaml %></pre>
+      </li>
+    <% end %>
+    </ul>
+  </a>
+<% end %>
+</div>
+
+<h3>New asset</h3>
+<form class="card p-3" action="/ddm/assets" method="post">
+  <div class="mb-3">
+    <label for="form_name" class="form-label">Name</label>
+    <input id="form_name" name="name" type="text" class="form-control" required>
+  </div>
+
+  <div class="mb-3">
+    <label for="input_type" class="form-label">Type</label>
+    <input type="text" class="form-control" id="input_type" name="type">
+  </div>
+
+  <button type="submit" class="btn btn-primary">Create</button>
+</form>

@@ -18,10 +18,6 @@
       </ul>
     </a>
 
-    <%
-      sort_map2 = Ddm::DeviceGroup.priority_sort_map
-    %>
-
     <a href="/ddm/activations" class="list-group-item list-group-item-action">
       <h3>Activations</h3>
       <ul>
@@ -49,17 +45,15 @@
     <a href="/ddm/assets" class="list-group-item list-group-item-action">
       <h3>Assets</h3>
       <ul>
-      <% Ddm::Asset.preload(:details).find_each do |asset| %>
+      <% Ddm::Asset.details_priority_sorted.each do |asset, details| %>
         <li>
           <%= asset.name %>
           <ul>
-          <% details_indexed = asset.details.index_by(&:target_identifier) ; sort_map2.each do |target_identifier| %>
-            <% details_indexed[target_identifier].try! do |asset_detail| %>
+          <% details.each do |asset_detail| %>
             <li>
               [<%= asset_detail.target_identifier || 'FALLBACK' %>]
               <pre><%= { 'type' => asset.type }.merge(asset_detail.payload).to_yaml %></pre>
             </li>
-            <% end %>
           <% end %>
           </ul>
         </li>
@@ -70,16 +64,14 @@
     <a href="/ddm/managements" class="list-group-item list-group-item-action">
       <h3>Management properties</h3>
       <ul>
-      <% Ddm::Management.preload(:details).find_each do |management| %>
+      <% Ddm::Management.details_priority_sorted.each do |management, details| %>
         <li>
           <%= management.name %>
           <ul>
-          <% details_indexed = management.details.index_by(&:target_identifier) ; sort_map2.each do |target_identifier| %>
-            <% details_indexed[target_identifier].try! do |management_detail| %>
+          <% details.each do |management_detail| %>
             <li>
               [<%= management_detail.target_identifier || 'FALLBACK' %>] <%= management_detail.payload %>
             </li>
-            <% end %>
           <% end %>
           </ul>
         </li>
@@ -90,17 +82,15 @@
     <a href="/ddm/public_assets" class="list-group-item list-group-item-action">
       <h3>Public assets</h3>
       <ul>
-      <% Ddm::PublicAsset.preload(:details).find_each do |public_asset| %>
+      <% Ddm::PublicAsset.details_priority_sorted.each do |public_asset, details| %>
         <li>
           <%= public_asset.name %>
           <ul>
-          <% details_indexed = public_asset.details.index_by(&:target_identifier) ; sort_map2.each do |target_identifier| %>
-            <% details_indexed[target_identifier].try! do |public_asset_detail| %>
-            <li>
-              [<%= target_identifier || 'FALLBACK' %>]
+          <% details.each do |public_asset_detail| %>
+            <li style="word-wrap: break-word">
+              [<%= public_asset_detail.target_identifier || 'FALLBACK' %>]
               <%= public_asset_detail.access_url %>
             </li>
-            <% end %>
           <% end %>
           </ul>
         </li>
