@@ -815,6 +815,25 @@ class SimpleAdminConsole < Sinatra::Base
     erb :'ddm/activations/index.html'
   end
 
+  post '/ddm/activations' do
+    login_required
+    form = Ddm::ActivationForm.new_with_sliced(params)
+    form.create
+    redirect "/ddm/activations"
+  end
+
+  get '/ddm/activations/:id' do
+    login_required
+    erb :'ddm/activations/show.html'
+  end
+
+  post '/ddm/activations/:id' do
+    login_required
+    form = Ddm::ActivationForm.new_with_sliced(params)
+    form.update(params[:id])
+    redirect "/ddm/activations/#{params[:id]}"
+  end
+
   get '/ddm/configurations' do
     login_required
     erb :'ddm/configurations/index.html'

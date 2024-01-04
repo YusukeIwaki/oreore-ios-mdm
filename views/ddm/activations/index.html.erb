@@ -1,0 +1,14 @@
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; Activations
+
+<div class="container">
+<h2>Activations</h2>
+
+<div class="list-group">
+<% Ddm::ActivationTarget.display_sorted.each do |activation_target| %>
+  <a href="/ddm/activations/<%= activation_target.activation.id %>" class="list-group-item list-group-item-action">
+  [<%= activation_target.target_identifier || 'ALL' %>] <%= activation_target.activation.name %>
+  <pre><%= { 'type' => activation_target.activation.type }.merge(activation_target.activation.payload).to_yaml %></pre>
+  </a>
+<% end %>
+<a href="/ddm/activations/new" class="list-group-item list-group-item-action">+ Add activation</a>
+</div>

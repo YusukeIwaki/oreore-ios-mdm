@@ -16,7 +16,15 @@
   <form class="card p-3" action="/ddm/public_assets/<%= @public_asset.id %>/details" method="post" enctype="multipart/form-data">
     <div class="mb-3">
       <label for="form_name" class="form-label">Target (serial_number, group_name, or blank for all devices)</label>
-      <input id="form_name" name="name" type="text" class="form-control">
+      <input id="form_name" name="name" list="target_options" type="text" class="form-control">
+      <datalist id="target_options">
+      <% Ddm::DeviceGroup.order(:name).pluck(:name).each do |device_group_name| %>
+        <option value="<%= device_group_name %>">
+      <% end %>
+      <% MdmDevice.order(:serial_number).pluck(:serial_number).each do |serial_number| %>
+        <option value="<%= serial_number %>">
+      <% end %>
+      </datalist>
     </div>
     <div class="mb-3">
       <label for="form_asset_file" class="form-label">File</label>

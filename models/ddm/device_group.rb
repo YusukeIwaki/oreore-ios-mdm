@@ -11,18 +11,6 @@ module Ddm
       where(id: ids)
     end
 
-    def self.display_sort_map
-      Enumerator.new do |out|
-        out << nil
-        preload(:items).each do |group|
-          out << group.name
-          group.items.each do |item|
-            out << item.device_identifier
-          end
-        end
-      end.to_a
-    end
-
     def self.priority_sort_map
       Enumerator.new do |out|
         group_names = []

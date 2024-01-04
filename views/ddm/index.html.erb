@@ -19,20 +19,17 @@
     </a>
 
     <%
-      sort_map = Ddm::DeviceGroup.display_sort_map
       sort_map2 = Ddm::DeviceGroup.priority_sort_map
     %>
 
     <a href="/ddm/activations" class="list-group-item list-group-item-action">
       <h3>Activations</h3>
       <ul>
-      <% activation_target_group = Ddm::ActivationTarget.preload(:activation).group_by(&:target_identifier) ; sort_map.each do |target_identifier| %>
-        <% activation_target_group[target_identifier]&.each do |activation_target| %>
+      <% Ddm::ActivationTarget.display_sorted.each do |activation_target| %>
         <li>
-          [<%= target_identifier || 'ALL' %>] <%= activation_target.activation.name %>
+          [<%= activation_target.target_identifier || 'ALL' %>] <%= activation_target.activation.name %>
           <pre><%= { 'type' => activation_target.activation.type }.merge(activation_target.activation.payload).to_yaml %></pre>
         </li>
-        <% end %>
       <% end %>
       </ul>
     </a>
