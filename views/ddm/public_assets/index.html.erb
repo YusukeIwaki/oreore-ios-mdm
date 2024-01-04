@@ -2,12 +2,19 @@
 <div class="container">
   <h2>Public assets</h2>
   <div class="list-group">
-  <% Ddm::PublicAsset.order(:name).preload(:details).each do |public_asset| %>
-    <a href="/ddm/public_assets/<%= public_asset.id %>" class="list-group-item list-group-item-action">
-    <%= public_asset.name %>
+  <% Ddm::PublicAsset.details_priority_sorted.each do |public_asset, details| %>
+    <a href="/ddm/public_assets/<%= public_asset.id %>/details" class="list-group-item list-group-item-action">
+      <%= public_asset.name %>
+      <ul>
+      <% details.each do |public_asset_detail| %>
+        <li class="text-break">
+          [<%= public_asset_detail.target_identifier || 'FALLBACK' %>]
+          <%= public_asset_detail.access_url %>
+        </li>
+      <% end %>
+      </ul>
     </a>
   <% end %>
-  </div>
 
   <h3>New asset</h3>
   <form class="card p-3" action="/ddm/public_assets" method="post">

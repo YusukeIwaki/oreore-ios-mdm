@@ -933,9 +933,14 @@ class SimpleAdminConsole < Sinatra::Base
     redirect '/ddm/public_assets'
   end
 
-  get '/ddm/public_assets/:id' do
+  get '/ddm/public_assets/:id/details' do
     login_required
-    erb :'ddm/public_assets/show.html'
+    erb :'ddm/public_assets/details.html'
+  end
+
+  get '/ddm/public_assets/:id/details/:detail_id' do
+    login_required
+    erb :'ddm/public_assets/details.html'
   end
 
   post '/ddm/public_assets/:id/details' do
@@ -945,7 +950,7 @@ class SimpleAdminConsole < Sinatra::Base
     detail = public_asset.details.find_or_initialize_by(target_identifier: params[:target_identifier].presence)
     detail.update!(asset_file: params[:asset_file])
 
-    redirect "/ddm/public_assets/#{public_asset.id}"
+    redirect "/ddm/public_assets/#{public_asset.id}/details"
   end
 end
 

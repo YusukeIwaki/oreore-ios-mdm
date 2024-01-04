@@ -1,0 +1,50 @@
+<%
+@public_asset = Ddm::PublicAsset.find(params[:id])
+@public_asset_detail = params[:detail_id].present? ? @public_asset.details.find(params[:detail_id]) : @public_asset.details.build
+%>
+<% if @public_asset_detail.new_record? %>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/public_assets">Public assets</a> &gt; <%= @public_asset.name %>
+<% else %>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/public_assets">Public assets</a> &gt; <a href="/ddm/public_assets/<%= @public_asset.id %>/details"><%= @public_asset.name %></a> &gt; <%= @public_asset_detail.target_identifier %>
+<% end %>
+
+<div class="container">
+  <h2>Public assets - <%= @public_asset.name %></h2>
+
+  <% if @public_asset_detail.new_record? %>
+  <div class="list-group">
+    <% Ddm::PublicAsset.details_priority_sorted(id: @public_asset.id).each do |public_asset, details| %>
+      <% details.each do |public_asset_detail| %>
+        <a href="/ddm/public_assets/<%= public_asset.id %>/details/<%= public_asset_detail.id %>" class="list-group-item list-group-item-action text-break">
+          [<%= public_asset_detail.target_identifier || 'FALLBACK' %>]
+          <%= public_asset_detail.access_url %>
+        </a>
+      <% end %>
+    <% end %>
+  </div>
+  <% end %>
+
+  <% if @public_asset_detail.new_record? %>
+  <h3>New target</h3>
+  <% else %>
+  <h3>Edit target</h3>
+  <% end %>
+  <form class="card p-3" action="/ddm/public_assets/<%= @public_asset.id %>/details" method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label for="form_target_identifier" class="form-label">Target (serial_number, group_name, or blank for all devices)</label>
+      <input id="form_target_identifier" name="target_identifier" list="target_options" type="text" value="<%= @public_asset_detail.target_identifier %>" class="form-control">
+      <datalist id="target_options">
+      <% Ddm::DeviceGroup.target_options.each do |value| %>
+        <option value="<%= value %>">
+      <% end %>
+      </datalist>
+    </div>
+
+    <div class="mb-3">
+      <label for="form_asset_file" class="form-label">File</label>
+      <input id="form_asset_file" name="asset_file" type="file" class="form-control" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
+</div>

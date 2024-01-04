@@ -87,7 +87,7 @@
           <%= public_asset.name %>
           <ul>
           <% details.each do |public_asset_detail| %>
-            <li style="word-wrap: break-word">
+            <li class="text-break">
               [<%= public_asset_detail.target_identifier || 'FALLBACK' %>]
               <%= public_asset_detail.access_url %>
             </li>
