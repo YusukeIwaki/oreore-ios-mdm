@@ -1,0 +1,47 @@
+<%
+@wifi_profile = params[:id].present? ? Rts::WifiProfile.find(params[:id]) : Rts::WifiProfile.new
+%>
+
+<% if @wifi_profile.new_record? %>
+<a href="/">TOP</a> &gt; Return to Service configuration &gt; Wi-Fi profiles
+<% else %>
+<a href="/">TOP</a> &gt; Return to Service configuration &gt; <a href="/rts/wifi_profiles">Wi-Fi profiles</a> &gt; <%= @wifi_profile.name %>
+<% end %>
+
+<div class="container">
+<h2>Return to Service configuration | Wi-Fi profiles</h2>
+
+<% if @wifi_profile.new_record? %>
+<div class="list-group">
+<% Rts::WifiProfile.order(:name).find_each do |wifi_profile| %>
+  <a href="/rts/wifi_profiles/<%= wifi_profile.id %>" class="list-group-item list-group-item-action">
+  <%= wifi_profile.name %>
+</a>
+<% end %>
+</div>
+<% else %>
+<div class="card p-3">
+  <pre><%= ERB::Util.h(@wifi_profile.asset_file.read) %></pre>
+</div>
+<% end %>
+
+<% if @wifi_profile.new_record? %>
+<h3>New profile</h3>
+<% else %>
+<h3>Edit profile</h3>
+<% end %>
+<form class="card p-3" action="/rts/wifi_profiles" method="post" enctype="multipart/form-data">
+  <div class="mb-3">
+    <label for="form_name" class="form-label">Name</label>
+    <input id="form_name" name="name" type="text" class="form-control" value="<%= @wifi_profile.name %>" required>
+  </div>
+
+  <div class="mb-3">
+    <label for="form_asset_file" class="form-label">File</label>
+    <input id="form_asset_file" name="asset_file" type="file" class="form-control" required>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+</div>
