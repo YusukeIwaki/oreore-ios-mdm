@@ -41,7 +41,7 @@ class MdmServer < Sinatra::Base
       lines << request.body.read
       request.body.rewind
 
-      logger.info(lines.join("\n"))
+      App._logger.info(lines.join("\n"))
     end
   end
 
@@ -92,7 +92,7 @@ class MdmServer < Sinatra::Base
       endpoint = plist['Endpoint']
       data = plist['Data'] ? JSON.parse(plist['Data'].read) : nil
 
-      logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
+      App._logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
       content_type 'application/json'
       router = DeclarativeManagementRouter.new(device.ddm_identifier)
       begin
@@ -149,7 +149,7 @@ class MdmServer < Sinatra::Base
       rescue ActiveRecord::RecordNotFound
         # iOS sometimes retry MDM response.
         # Just ignore if CommandUUID is already handled and not in DB.
-        logger.warn("CommandUUID not in DB: #{plist}")
+        App._logger.warn("CommandUUID not in DB: #{plist}")
       end
     end
 
@@ -173,7 +173,7 @@ class MdmServer < Sinatra::Base
       command_queue << handling_request
     end
 
-    logger.info("command: #{command || 'nil'}")
+    App._logger.info("command: #{command || 'nil'}")
     if command
       content_type 'application/xml'
       body command.to_plist
@@ -233,7 +233,7 @@ class MdmByodServer < Sinatra::Base
   # accessed via WebView.
   get '/mdm-byod/authenticate' do
     email = params['user-identifier']
-    logger.info "Enrollment request with email=#{email}"
+    App._logger.info "Enrollment request with email=#{email}"
 
     erb :'mdm-byod/authenticate.html'
   end
@@ -341,7 +341,7 @@ class MdmByodServer < Sinatra::Base
       rescue ActiveRecord::RecordNotFound
         # iOS sometimes retry MDM response.
         # Just ignore if CommandUUID is already handled and not in DB.
-        logger.warn("CommandUUID not in DB: #{plist}")
+        App._logger.warn("CommandUUID not in DB: #{plist}")
       end
     end
 
@@ -365,7 +365,7 @@ class MdmByodServer < Sinatra::Base
       command_queue << handling_request
     end
 
-    logger.info("command: #{command || 'nil'}")
+    App._logger.info("command: #{command || 'nil'}")
     if command
       content_type 'application/xml'
       body command.to_plist
@@ -423,7 +423,7 @@ class MdmAddeServer < Sinatra::Base
   # accessed via WebView.
   get '/mdm-adde/authenticate' do
     email = params['user-identifier']
-    logger.info "Device enrollment request with email=#{email}"
+    App._logger.info "Device enrollment request with email=#{email}"
 
     erb :'mdm-adde/authenticate.html'
   end
@@ -477,7 +477,7 @@ class MdmAddeServer < Sinatra::Base
       endpoint = plist['Endpoint']
       data = plist['Data'] ? JSON.parse(plist['Data'].read) : nil
 
-      logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
+      App._logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
       content_type 'application/json'
       router = DeclarativeManagementRouter.new(device.ddm_identifier)
       begin
@@ -554,7 +554,7 @@ class MdmAddeServer < Sinatra::Base
       rescue ActiveRecord::RecordNotFound
         # iOS sometimes retry MDM response.
         # Just ignore if CommandUUID is already handled and not in DB.
-        logger.warn("CommandUUID not in DB: #{plist}")
+        App._logger.warn("CommandUUID not in DB: #{plist}")
       end
     end
 
@@ -578,7 +578,7 @@ class MdmAddeServer < Sinatra::Base
       command_queue << handling_request
     end
 
-    logger.info("command: #{command || 'nil'}")
+    App._logger.info("command: #{command || 'nil'}")
     if command
       content_type 'application/xml'
       body command.to_plist
@@ -602,7 +602,7 @@ class SimpleAdminConsole < Sinatra::Base
 
   helpers do
     def login_allowed?(email)
-      logger.info("login_allowed? email=#{email}, GOOGLE_ALLOWED_DOMAINS=#{ENV['GOOGLE_ALLOWED_DOMAINS']}, GOOGLE_ALLOWED_USERS=#{ENV['GOOGLE_ALLOWED_USERS']}")
+      App._logger.info("login_allowed? email=#{email}, GOOGLE_ALLOWED_DOMAINS=#{ENV['GOOGLE_ALLOWED_DOMAINS']}, GOOGLE_ALLOWED_USERS=#{ENV['GOOGLE_ALLOWED_USERS']}")
       if ENV['GOOGLE_ALLOWED_DOMAINS'].present?
         return true if ENV['GOOGLE_ALLOWED_DOMAINS'].split(',').include?(email.split('@').last)
       end
@@ -966,7 +966,9 @@ class SimpleAdminConsole < Sinatra::Base
 end
 
 class App < Sinatra::Base
-  use SinatraStdoutLogging
+  def self._logger
+    @_logger ||= Logger.new($stdout)
+  end
   use FixContentTypeMiddleware
 
   use MdmServer
