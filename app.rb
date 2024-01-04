@@ -696,6 +696,19 @@ class SimpleAdminConsole < Sinatra::Base
       declaration = DeclarativeManagement::Declaration.new(params[:declarativemanagement_device_identifier])
       command = Command::DeclarativeManagement.new(tokens: declaration.tokens)
       command.request_payload.to_plist
+    elsif params[:class] == 'EraseDevice'
+      rts_wifi_profile = Rts::WifiProfile.order(:name).first
+      if rts_wifi_profile
+        command = Command::EraseDevice.new(
+          rts_enabled: true,
+          rts_wifi_profile_data: rts_wifi_profile.asset_file.read,
+          rts_mdm_profile_data: rb(:'mdm.mobileconfig'),
+        )
+        command.request_payload.to_plist
+      else
+        command = Command::EraseDevice.new(rts_enabled: false)
+        command.request_payload.to_plist
+      end
     elsif params[:class] && Command.const_defined?(params[:class])
       klass = Command.const_get(params[:class])
       command = klass.try(:template_new) || klass.new
@@ -742,6 +755,23 @@ class SimpleAdminConsole < Sinatra::Base
     push_result = PushClient.new.send_mdm_notification(byod_push_endpoint)
     puts "push_result: #{push_result.inspect}"
     redirect "/byod/devices/#{params[:enrollment_id]}"
+  end
+
+  get '/rts/wifi_profiles' do
+    login_required
+    erb :'rts/wifi_profiles.html'
+  end
+
+  get '/rts/wifi_profiles/:id' do
+    login_required
+    erb :'rts/wifi_profiles.html'
+  end
+
+  post '/rts/wifi_profiles' do
+    login_required
+    wifi_profile = Rts::WifiProfile.find_or_initialize_by(name: params[:name])
+    wifi_profile.update!(asset_file: params[:asset_file])
+    redirect '/rts/wifi_profiles'
   end
 
   get '/ddm' do
