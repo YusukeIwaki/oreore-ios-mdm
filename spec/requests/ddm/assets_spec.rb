@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe 'POST /ddm/activations', logged_in: true do
+describe 'POST /ddm/assets', logged_in: true do
   before {
     Ddm::AssetDetail.delete_all
     Ddm::Asset.delete_all

@@ -864,7 +864,32 @@ class SimpleAdminConsole < Sinatra::Base
   end
 
   get '/ddm/managements' do
+    login_required
     erb :'ddm/managements/index.html'
+  end
+
+  post '/ddm/managements' do
+    login_required
+    management = Ddm::Management.create!(name: params[:name], type: params[:type])
+    redirect '/ddm/managements'
+  end
+
+  get '/ddm/managements/:id/details' do
+    login_required
+    erb :'ddm/managements/details.html'
+  end
+
+  get '/ddm/managements/:id/details/:detail_id' do
+    login_required
+    erb :'ddm/managements/details.html'
+  end
+
+  post '/ddm/managements/:id/details' do
+    login_required
+    management = Ddm::Management.find(params[:id])
+    detail = management.details.find_or_initialize_by(target_identifier: params[:target_identifier].presence)
+    detail.update!(payload: YAML.load(params[:payload]))
+    redirect "/ddm/managements/#{management.id}/details"
   end
 
   get '/ddm/assets' do
