@@ -16,13 +16,11 @@ module Ddm
     end
 
     def self.display_sorted
-      device_identifiers = Set.new
       sort_map = Enumerator.new do |out|
         out << nil
         Ddm::DeviceGroup.preload(:items).each do |group|
           out << group.name
           group.items.each do |item|
-            device_identifiers << item.device_identifier
             out << item.device_identifier
           end
         end
@@ -36,7 +34,7 @@ module Ddm
           end
         end
 
-        Ddm::ActivationTarget.where.not(target_identifier: device_identifiers).each do |activation_target|
+        Ddm::ActivationTarget.where.not(target_identifier: sort_map).each do |activation_target|
           next if activation_target.target_identifier.nil?
           out << activation_target
         end
