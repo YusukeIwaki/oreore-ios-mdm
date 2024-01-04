@@ -601,6 +601,17 @@ class SimpleAdminConsole < Sinatra::Base
   end
 
   helpers do
+    def login_allowed?(email)
+      logger.info("login_allowed? email=#{email}, GOOGLE_ALLOWED_DOMAINS=#{ENV['GOOGLE_ALLOWED_DOMAINS']}, GOOGLE_ALLOWED_USERS=#{ENV['GOOGLE_ALLOWED_USERS']}")
+      if ENV['GOOGLE_ALLOWED_DOMAINS'].present?
+        return true if ENV['GOOGLE_ALLOWED_DOMAINS'].split(',').include?(email.split('@').last)
+      end
+      if ENV['GOOGLE_ALLOWED_USERS'].present?
+        return true if ENV['GOOGLE_ALLOWED_USERS'].split(',').include?(email)
+      end
+      false
+    end
+
     def logged_in?
       session[:uid].present?
     end
@@ -632,7 +643,7 @@ class SimpleAdminConsole < Sinatra::Base
 
     auth_hash = env["omniauth.auth"]
     username = auth_hash['uid']
-    if ENV['GOOGLE_ALLOWED_USERS'].split(',').include?(username)
+    if login_allowed?(username)
       session[:uid] = username
       redirect return_url
     else
@@ -652,7 +663,7 @@ class SimpleAdminConsole < Sinatra::Base
     auth_hash = env["omniauth.auth"]
     email_verified = auth_hash.dig('extra', 'raw_info', 'email_verified')
     email = auth_hash.dig('extra', 'raw_info', 'email')
-    if email_verified && ENV['GOOGLE_ALLOWED_USERS'].split(',').include?(email)
+    if email_verified && login_allowed?(email)
       session[:uid] = email
       redirect return_url
     else
