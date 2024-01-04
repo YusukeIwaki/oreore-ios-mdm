@@ -1,0 +1,58 @@
+<%
+@management = Ddm::Management.find(params[:id])
+@management_detail = params[:detail_id].present? ? @management.details.find(params[:detail_id]) : @management.details.build
+%>
+<% if @management_detail.new_record? %>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/managements">Management properties</a> &gt; <%= @management.name %>
+<% else %>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/managements">Management properties</a> &gt; <a href="/ddm/managements/<%= @management.id %>/details"><%= @management.name %></a> &gt; <%= @management_detail.target_identifier %>
+<% end %>
+
+<div class="container">
+<h2>Management property: <%= @management.name %></h2>
+
+<% if @management_detail.new_record? %>
+<div class="list-group">
+  <% Ddm::Management.details_priority_sorted(id: @management.id).each do |management, details| %>
+    <% details.each do |management_detail| %>
+    <a href="/ddm/managements/<%= management.id %>/details/<%= management_detail.id %>" class="list-group-item list-group-item-action">
+      [<%= management_detail.target_identifier || 'FALLBACK' %>]
+      <pre><%= { 'type' => management.type }.merge(management_detail.payload).to_yaml %></pre>
+    </a>
+    <% end %>
+  <% end %>
+</div>
+<% end %>
+
+<% if @management_detail.new_record? %>
+<h3>New target</h3>
+<% else %>
+<h3>Edit target</h3>
+<% end %>
+<form class="card p-3" action="/ddm/managements/<%= @management.id %>/details" method="post">
+  <div class="mb-3">
+    <label for="form_target_identifier" class="form-label">Target (serial_number, group_name, or blank for all devices)</label>
+    <input id="form_target_identifier" name="target_identifier" list="target_options" type="text" value="<%= @management_detail.target_identifier %>" class="form-control">
+    <datalist id="target_options">
+    <% Ddm::DeviceGroup.target_options.each do |value| %>
+      <option value="<%= value %>">
+    <% end %>
+    </datalist>
+  </div>
+
+  <div class="mb-3">
+    <label for="input_type" class="form-label">Type</label>
+    <input type="text" class="form-control" id="input_type" name="type" value="<%= @management.type %>" readonly>
+  </div>
+
+  <div class="mb-3">
+    <label for="input_payload" class="form-label">Payload</label>
+    <textarea class="form-control" id="input_payload" name="payload" rows="20"><%=
+    @management_detail.payload.to_yaml
+    %></textarea>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+</div>

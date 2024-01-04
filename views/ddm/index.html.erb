@@ -1,0 +1,101 @@
+<a href="/">TOP</a> &gt; Declarative Device Management
+<div class="container">
+<h2>Declarative device management</h2>
+  <div class="list-group">
+    <a href="/ddm/device_groups" class="list-group-item list-group-item-action">
+      <h3>Device groups</h3>
+      <ul>
+      <% Ddm::DeviceGroup.preload(:items).each do |group| %>
+      <li>
+        <%= group.name %>
+        <ul>
+        <% group.items.each do |item| %>
+          <li><%= item.device_identifier %></li>
+        <% end %>
+        </ul>
+      </li>
+      <% end %>
+      </ul>
+    </a>
+
+    <a href="/ddm/activations" class="list-group-item list-group-item-action">
+      <h3>Activations</h3>
+      <ul>
+      <% Ddm::ActivationTarget.display_sorted.each do |activation_target| %>
+        <li>
+          [<%= activation_target.target_identifier || 'ALL' %>] <%= activation_target.activation.name %>
+          <pre><%= { 'type' => activation_target.activation.type }.merge(activation_target.activation.payload).to_yaml %></pre>
+        </li>
+      <% end %>
+      </ul>
+    </a>
+
+    <a href="/ddm/configurations" class="list-group-item list-group-item-action">
+      <h3>Configurations</h3>
+      <ul>
+      <% Ddm::Configuration.find_each do |configuration| %>
+        <li>
+          <%= configuration.name %>
+          <pre><%= { 'type' => configuration.type }.merge(configuration.payload).to_yaml %></pre>
+        </li>
+      <% end %>
+      </ul>
+    </a>
+
+    <a href="/ddm/assets" class="list-group-item list-group-item-action">
+      <h3>Assets</h3>
+      <ul>
+      <% Ddm::Asset.details_priority_sorted.each do |asset, details| %>
+        <li>
+          <%= asset.name %>
+          <ul>
+          <% details.each do |asset_detail| %>
+            <li>
+              [<%= asset_detail.target_identifier || 'FALLBACK' %>]
+              <pre><%= { 'type' => asset.type }.merge(asset_detail.payload).to_yaml %></pre>
+            </li>
+          <% end %>
+          </ul>
+        </li>
+      <% end %>
+      </ul>
+    </a>
+
+    <a href="/ddm/managements" class="list-group-item list-group-item-action">
+      <h3>Management properties</h3>
+      <ul>
+      <% Ddm::Management.details_priority_sorted.each do |management, details| %>
+        <li>
+          <%= management.name %>
+          <ul>
+          <% details.each do |management_detail| %>
+            <li>
+              [<%= management_detail.target_identifier || 'FALLBACK' %>] <%= management_detail.payload %>
+            </li>
+          <% end %>
+          </ul>
+        </li>
+      <% end %>
+      </ul>
+    </a>
+
+    <a href="/ddm/public_assets" class="list-group-item list-group-item-action">
+      <h3>Public assets</h3>
+      <ul>
+      <% Ddm::PublicAsset.details_priority_sorted.each do |public_asset, details| %>
+        <li>
+          <%= public_asset.name %>
+          <ul>
+          <% details.each do |public_asset_detail| %>
+            <li class="text-break">
+              [<%= public_asset_detail.target_identifier || 'FALLBACK' %>]
+              <%= public_asset_detail.access_url %>
+            </li>
+          <% end %>
+          </ul>
+        </li>
+      <% end %>
+      </ul>
+    </a>
+  </div>
+</div>

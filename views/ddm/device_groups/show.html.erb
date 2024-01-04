@@ -1,0 +1,41 @@
+<%
+@group =
+  if params[:id] == 'new'
+    Ddm::DeviceGroup.new
+  else
+    Ddm::DeviceGroup.find(params[:id])
+  end
+@form_post_url =
+  if @group.new_record?
+    '/ddm/device_groups'
+  else
+    "/ddm/device_groups/#{params[:id]}"
+  end
+%>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/device_groups">Device groups</a> &gt; <%= @group.name || 'NEW' %>
+
+<div class="container">
+<h2>Device group: <%= @group.name || 'NEW' %></h2>
+
+
+<form action="<%= @form_post_url %>" method="post">
+
+<div class="mb-3">
+  <label for="input_name" class="form-label">Name</label>
+  <% if @group.new_record? %>
+  <input type="text" class="form-control" id="input_name" name="name" value="<%= @group.name %>">
+  <% else %>
+  <input type="text" class="form-control" id="input_name" name="name" value="<%= @group.name %>" disabled>
+  <a href="/ddm/device_groups/<%= @group.id %>/rename">Rename</a>
+  <% end %>
+</div>
+
+<div class="mb-3">
+  <label for="input_serial_numbers" class="form-label">Device serial numbers</label>
+  <textarea class="form-control" id="input_serial_numbers" name="serial_numbers" rows="20"><%=
+  @group.items.pluck(:device_identifier).join("\n")
+  %></textarea>
+</div>
+<button type="submit" class="btn btn-primary">Submit</button>
+</form>
+</div>

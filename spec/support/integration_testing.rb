@@ -14,4 +14,7 @@ RSpec.configure do |config|
     metadata[:type] = :integration
   end
   config.include(IntegrationTesting, type: :integration)
+  config.before(:each, logged_in: true) do
+    allow_any_instance_of(SimpleAdminConsole).to receive(:logged_in?).and_return(true)
+  end
 end

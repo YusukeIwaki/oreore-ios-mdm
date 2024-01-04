@@ -1,0 +1,14 @@
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; Configurations
+
+<div class="container">
+<h2>Configurations</h2>
+
+<div class="list-group">
+<% Ddm::Configuration.find_each do |configuration| %>
+  <a href="/ddm/configurations/<%= configuration.id %>" class="list-group-item list-group-item-action">
+  <%= configuration.name %>
+  <pre><%= { 'type' => configuration.type }.merge(configuration.payload).to_yaml %></pre>
+  </a>
+<% end %>
+<a href="/ddm/configurations/new" class="list-group-item list-group-item-action">+ Add configuration</a>
+</div>

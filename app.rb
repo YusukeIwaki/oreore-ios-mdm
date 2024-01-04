@@ -72,15 +72,9 @@ class MdmServer < Sinatra::Base
     rb :'mdm.mobileconfig'
   end
 
-  get '/mdm/declarative/assets/:file/:digest' do
+  get '/asset_files/*rest' do
     verbose_print_request
-    found = Ddm::PublicAssetDetail.find_by_path_params(params[:file], params[:digest])
-
-    unless found
-      halt 404, 'Not found'
-    end
-
-    send_file found.asset_file
+    AssetFileUploader.download_response(request.env)
   end
 
   put '/mdm/checkin' do
@@ -288,10 +282,14 @@ class MdmByodServer < Sinatra::Base
     end
 
     if plist['EnrollmentID'].present?
-      # Record usage and block access from other devices.
-      ManagedAppleAccountAccessTokenUsage.
-        find_or_initialize_by(device_identifier: plist['EnrollmentID']).
-        update!(managed_apple_account_access_token: current_access_token)
+      begin
+        # Record usage and block access from other devices.
+        ManagedAppleAccountAccessTokenUsage.
+          find_or_initialize_by(device_identifier: plist['EnrollmentID']).
+          update!(managed_apple_account_access_token: current_access_token)
+      rescue ActiveRecord::RecordNotUnique
+        halt 400, 'Access token is already used by another device'
+      end
     end
 
     message_handler =
@@ -323,10 +321,14 @@ class MdmByodServer < Sinatra::Base
       halt 400, 'Bad request'
     end
 
-    # Record usage and block access from other devices.
-    ManagedAppleAccountAccessTokenUsage.
-      find_or_initialize_by(device_identifier: enrollment_id).
-      update!(managed_apple_account_access_token: current_access_token)
+    begin
+      # Record usage and block access from other devices.
+      ManagedAppleAccountAccessTokenUsage.
+        find_or_initialize_by(device_identifier: enrollment_id).
+        update!(managed_apple_account_access_token: current_access_token)
+    rescue ActiveRecord::RecordNotUnique
+      halt 400, 'Access token is already used by another device'
+    end
 
     device = ByodDevice.find_by!(enrollment_id: enrollment_id)
     command_queue = CommandQueue.for_byod_device(device)
@@ -493,10 +495,14 @@ class MdmAddeServer < Sinatra::Base
     end
 
     if plist['UDID'].present?
-      # Record usage and block access from other devices.
-      ManagedAppleAccountAccessTokenUsage.
-        find_or_initialize_by(device_identifier: plist['UDID']).
-        update!(managed_apple_account_access_token: current_access_token)
+      begin
+        # Record usage and block access from other devices.
+        ManagedAppleAccountAccessTokenUsage.
+          find_or_initialize_by(device_identifier: plist['UDID']).
+          update!(managed_apple_account_access_token: current_access_token)
+      rescue ActiveRecord::RecordNotUnique
+        halt 400, 'Access token is already used by another device'
+      end
     end
 
     message_handler =
@@ -528,10 +534,14 @@ class MdmAddeServer < Sinatra::Base
       halt 400, 'Bad request'
     end
 
-    # Record usage and block access from other devices.
-    ManagedAppleAccountAccessTokenUsage.
-      find_or_initialize_by(device_identifier: udid).
-      update!(managed_apple_account_access_token: current_access_token)
+    begin
+      # Record usage and block access from other devices.
+      ManagedAppleAccountAccessTokenUsage.
+        find_or_initialize_by(device_identifier: udid).
+        update!(managed_apple_account_access_token: current_access_token)
+    rescue ActiveRecord::RecordNotUnique
+      halt 400, 'Access token is already used by another device'
+    end
 
     device = MdmDevice.find_by!(udid: udid)
     command_queue = CommandQueue.for_device(device)
@@ -723,33 +733,224 @@ class SimpleAdminConsole < Sinatra::Base
     redirect "/byod/devices/#{params[:enrollment_id]}"
   end
 
-  get '/public_assets' do
+  get '/ddm' do
     login_required
-    erb :'public_assets/index.html'
+    erb :'ddm/index.html'
   end
 
-  post '/public_assets' do
+  get '/ddm/device_groups' do
+    login_required
+    erb :'ddm/device_groups/index.html'
+  end
+
+  post '/ddm/device_groups' do
+    login_required
+    serial_numbers = params[:serial_numbers].split("\n").filter_map { |s| s.presence&.strip }
+    if serial_numbers.empty?
+      Ddm::DeviceGroup.create!(name: params[:name])
+    else
+      timestamp = Time.current
+      ActiveRecord::Base.transaction do
+        group = Ddm::DeviceGroup.create!(name: params[:name])
+        Ddm::DeviceGroupItem.insert_all!(
+          serial_numbers.map do |serial_number|
+            {
+              ddm_device_group_id: group.id,
+              device_identifier: serial_number,
+              created_at: timestamp,
+            }
+          end
+        )
+      end
+    end
+    redirect '/ddm/device_groups'
+  end
+
+  get '/ddm/device_groups/:id' do
+    login_required
+    erb :'ddm/device_groups/show.html'
+  end
+
+  post '/ddm/device_groups/:id' do
+    login_required
+    group = Ddm::DeviceGroup.find(params[:id])
+    serial_numbers = params[:serial_numbers].split("\n").filter_map { |s| s.presence&.strip }
+    if serial_numbers.empty?
+      Ddm::DeviceGroupItem.where(device_group: group).delete_all
+    else
+      new_serial_numbers = serial_numbers - group.items.pluck(:device_identifier)
+      unless new_serial_numbers.empty?
+        timestamp = Time.current
+        ActiveRecord::Base.transaction do
+          Ddm::DeviceGroupItem.where(device_group: group).where.not(device_identifier: serial_numbers).delete_all
+          Ddm::DeviceGroupItem.insert_all!(
+            new_serial_numbers.map do |serial_number|
+              {
+                ddm_device_group_id: group.id,
+                device_identifier: serial_number,
+                created_at: timestamp,
+              }
+            end
+          )
+        end
+      end
+    end
+    redirect "/ddm/device_groups/#{params[:id]}"
+  end
+
+  get '/ddm/device_groups/:id/rename' do
+    login_required
+    erb :'ddm/device_groups/rename.html'
+  end
+
+  post '/ddm/device_groups/:id/rename' do
+    login_required
+    group = Ddm::DeviceGroup.find(params[:id])
+    group.update!(name: params[:name])
+    redirect "/ddm/device_groups/#{params[:id]}"
+  end
+
+  get '/ddm/activations' do
+    login_required
+    erb :'ddm/activations/index.html'
+  end
+
+  post '/ddm/activations' do
+    login_required
+    form = Ddm::ActivationForm.new_with_sliced(params)
+    form.create
+    redirect "/ddm/activations"
+  end
+
+  get '/ddm/activations/:id' do
+    login_required
+    erb :'ddm/activations/show.html'
+  end
+
+  post '/ddm/activations/:id' do
+    login_required
+    form = Ddm::ActivationForm.new_with_sliced(params)
+    form.update(params[:id])
+    redirect "/ddm/activations/#{params[:id]}"
+  end
+
+  get '/ddm/configurations' do
+    login_required
+    erb :'ddm/configurations/index.html'
+  end
+
+  post '/ddm/configurations' do
+    login_required
+    payload = YAML.load(params[:payload])
+    configuration = Ddm::Configuration.create!(
+      name: params[:name],
+      type: params[:type],
+      payload: payload,
+    )
+    redirect "/ddm/configurations"
+  end
+
+  get '/ddm/configurations/:id' do
+    login_required
+    erb :'ddm/configurations/show.html'
+  end
+
+  post '/ddm/configurations/:id' do
+    login_required
+    configuration = Ddm::Configuration.find(params[:id])
+    payload = YAML.load(params[:payload])
+    configuration.update!(type: params[:type], payload: payload)
+    redirect "/ddm/configurations/#{params[:id]}"
+  end
+
+  get '/ddm/managements' do
+    login_required
+    erb :'ddm/managements/index.html'
+  end
+
+  post '/ddm/managements' do
+    login_required
+    management = Ddm::Management.create!(name: params[:name], type: params[:type])
+    redirect '/ddm/managements'
+  end
+
+  get '/ddm/managements/:id/details' do
+    login_required
+    erb :'ddm/managements/details.html'
+  end
+
+  get '/ddm/managements/:id/details/:detail_id' do
+    login_required
+    erb :'ddm/managements/details.html'
+  end
+
+  post '/ddm/managements/:id/details' do
+    login_required
+    management = Ddm::Management.find(params[:id])
+    detail = management.details.find_or_initialize_by(target_identifier: params[:target_identifier].presence)
+    detail.update!(payload: YAML.load(params[:payload]))
+    redirect "/ddm/managements/#{management.id}/details"
+  end
+
+  get '/ddm/assets' do
+    login_required
+    erb :'ddm/assets/index.html'
+  end
+
+  post '/ddm/assets' do
+    login_required
+    asset = Ddm::Asset.create!(name: params[:name], type: params[:type])
+    redirect '/ddm/assets'
+  end
+
+  get '/ddm/assets/:id/details' do
+    login_required
+    erb :'ddm/assets/details.html'
+  end
+
+  get '/ddm/assets/:id/details/:detail_id' do
+    login_required
+    erb :'ddm/assets/details.html'
+  end
+
+  post '/ddm/assets/:id/details' do
+    login_required
+    asset = Ddm::Asset.find(params[:id])
+    detail = asset.details.find_or_initialize_by(target_identifier: params[:target_identifier].presence)
+    detail.update!(payload: YAML.load(params[:payload]))
+    redirect "/ddm/assets/#{asset.id}/details"
+  end
+
+  get '/ddm/public_assets' do
+    login_required
+    erb :'ddm/public_assets/index.html'
+  end
+
+  post '/ddm/public_assets' do
     login_required
 
     public_asset = Ddm::PublicAsset.create!(name: params[:name])
-    redirect '/public_assets'
+    redirect '/ddm/public_assets'
   end
 
-  get '/public_assets/:id' do
+  get '/ddm/public_assets/:id/details' do
     login_required
-    erb :'public_assets/show.html'
+    erb :'ddm/public_assets/details.html'
   end
 
-  post '/public_assets/:id/details' do
+  get '/ddm/public_assets/:id/details/:detail_id' do
+    login_required
+    erb :'ddm/public_assets/details.html'
+  end
+
+  post '/ddm/public_assets/:id/details' do
     login_required
 
     public_asset = Ddm::PublicAsset.find(params[:id])
-    public_asset.details.create!(
-      target_identifier: params[:target_identifier].presence,
-      asset_file: params[:asset_file],
-    )
+    detail = public_asset.details.find_or_initialize_by(target_identifier: params[:target_identifier].presence)
+    detail.update!(asset_file: params[:asset_file])
 
-    redirect "/public_assets/#{params[:id]}"
+    redirect "/ddm/public_assets/#{public_asset.id}/details"
   end
 end
 

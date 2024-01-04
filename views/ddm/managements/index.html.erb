@@ -1,0 +1,35 @@
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; Management properties
+
+<div class="container">
+<h2>Management properties</h2>
+
+<div class="list-group">
+<% Ddm::Management.details_priority_sorted.each do |management, details| %>
+  <a href="/ddm/managements/<%= management.id %>/details" class="list-group-item list-group-item-action">
+  <%= management.name %>
+    <ul>
+    <% details.each do |management_detail| %>
+      <li>
+        [<%= management_detail.target_identifier || 'FALLBACK' %>]
+        <pre><%= { 'type' => management.type }.merge(management_detail.payload).to_yaml %></pre>
+      </li>
+    <% end %>
+    </ul>
+  </a>
+<% end %>
+</div>
+
+<h3>New management property</h3>
+<form class="card p-3" action="/ddm/managements" method="post">
+  <div class="mb-3">
+    <label for="form_name" class="form-label">Name</label>
+    <input id="form_name" name="name" type="text" class="form-control" required>
+  </div>
+
+  <div class="mb-3">
+    <label for="input_type" class="form-label">Type</label>
+    <input type="text" class="form-control" id="input_type" name="type" value="com.apple.management.properties" readonly>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Create</button>
+</form>

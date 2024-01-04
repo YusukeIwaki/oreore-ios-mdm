@@ -19,6 +19,10 @@ jobs:
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      azurite:
+        image: mcr.microsoft.com/azure-storage/azurite
+        ports:
+          - 10000:10000
     steps:
       - uses: actions/checkout@v3
       - uses: ruby/setup-ruby@v1
@@ -27,6 +31,8 @@ jobs:
           bundler-cache: true
       - name: Prepare database
         run: bundle exec ridgepole -c postgres://pguser:pgpassword@127.0.0.1:5432/pgdb -a
+      - name: Create Azure Storage Container
+        run: az storage container create --name oreore-ios-mdm-test --connection-string "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1"
       - name: Run tests
         run: bundle exec rspec
         env:
@@ -34,3 +40,7 @@ jobs:
           MDM_SERVER_BASE_URL: https://example.com
           MDM_MOBILECONFIG_PAYLOAD_UUID: 8d9fae94-caad-40cf-b663-e3c8f82a6457
           DEVICE_CERTIFICATE_BASE64: MIIJSAIBAzCCCRIGCSqGSIb3DQEHAaCCCQMEggj/MIII+zCCA38GCSqGSIb3DQEHBqCCA3AwggNsAgEAMIIDZQYJKoZIhvcNAQcBMBwGCiqGSIb3DQEMAQYwDgQI2/0W70jup9YCAggAgIIDOJQf27mHhtFESYu75dX98/7jj2AmMgVCqxYWRCUveEZ8hN2HvOEcergzj8OOFIaAjsUbL9gemWvffHHxtwLsM6gNn8F8cTVbCqHEvXUgzNtb06/C2U8a3tGuNIDcZwZ+/DkxeEa41Uefpz6uziKkLJ0DYFPUZgKwvYpf225YRqjwBDBjoHcwpmaw87m6JXA8r+P8kR5/yKpcxtHM3lJ/indO2+/M5FeevI6aoTGp4IdFBhjeNSWON8L0JbIGN25ZOTVivDWbS2qcO6H1K4vLxj0U1STZ8GWcrEbrU0t3YjqWnETLyh7gfv1NpSeXlHm2YGczN4HXi2ZskwfEk10GV/YD3wHCN2tzhJXc+XW7ytC0JhwiC/RqzgQky6GGhUr47w1gtRvIU4wSHE15jkPRnFl6/82ke5vXYX9fVhV7BymyQvK6kC1knEtAO13SbFEv82boBx5aUD7nsddmO1xUVDOE3M/CIao+x7uBVh49Gqbx3nnrZ1ypMnuIS+hy/poSOWiNk2bN3QqM6G7/6lUp1CrZDPeLLdJPoaqQsxsQjY8dCrS1x/KKKBTkTkGUDpX+AlDx5Szy+Hamlw1KqBDU2/4tl3HCLK6IMJbC0AGCaXoHWdjhrzHurulQMUcIVnqP0iwZnUG3NeSeRNICiJveP09i3MTKonKnvNeHVbRQ8M2WkVqjyeq8bFhqNsQoQxjY7gVvbPLNkUoibvTxC7mj/cIF/Y9PMACd3uyVyRCiVYRClYrJW+00SLwpfESYW2AFKmAE9q0XyPr+wv+FRsr8x2YTExSOO6HObsU1kRFYeP3tlaga5Elj71nbjoYOrBCOs1hAWLacJPB+8ujJ7iiQADKI+422PV0tg8GvYvXzXqMwEqotsWbrqXhLDPrUG2ABXYxzY01LdbNFrM90s9lHWC19M/n92+3l6wi2MN1Dlf6vFK5bk5Z4SPWrzfu2bnetme/9zrkldTkcK21MTi1NPrFs5+KFMpaGfE9KvSXzlQbdkcAtvvY6sE5M3mj0PFq1i62FXXW+PAVnqrrPAEK7CfrD33ehEKFY5dg3JrIQ6wL9Rd9Z1O9YTmAnbB+kYhIP1kmsSQ72WJCuMIIFdAYJKoZIhvcNAQcBoIIFZQSCBWEwggVdMIIFWQYLKoZIhvcNAQwKAQKgggTuMIIE6jAcBgoqhkiG9w0BDAEDMA4ECAte37Pk/e8yAgIIAASCBMhqplyo/i0o4W1lcy4GnqRsbibuJJelEyFtCg8/VIszc6u0ZSxFifedQCdwvR3syUuERlRbUCkvAXGMzmAt2HBzZ531f4z356jtfqdnj3nfGC/ZMHjQbUUm176YK4JGZlrHUm6IVFAarG7NSJeQoFP/IcgeXBqww4bIAeRbVSIgiVHEuId/Q5widx/yMFPeP1shPeD6qCI4HvMKLFKEDdo2IGf4ZQC3V4Ngkbro9yWlkUPvXgvb+jt7Hy1fET+ODXjUAmzmhUnt4xEPz3yrTX1hS3LSE/AHVNDMH5xS6VjGTuWwnSkTO/jZcWbGULffYVN9+3B8BIjb3ZbUFRxOb3W5BnxVAnVPo1EAEclqGCdg361Z8WKlWNhe5iwy6GBYTOer3i35RhW19jkZyfY+wPe+8ndvXEwOUQocpreKaUAiAzn+kEg3N4w8sRzrTl1YiP4X4sHCcx/OFtNsjD58PHQPL4mcYFT2NC54H9FGgJXyOSM0ismCmcbCxquCAHn18TMGa7iQiOMMcfiQNh15knDANBJUHbxwm6A2ZxH2J8mVbdaH7SIOQMObBkiEfSO2HyN4O0rI/X9SMeWxLKIWMZptb3mW45q+dbamRI8leSpy/GV+f7gQPiBalf0F82YcozeqEnpftKSg5XIVaEbVZtGJuyvyx7r+0cOi+bNnDFW/jJ0fMyFu0uz9sYyXLIW9FGDhQZMu92B/hTljAH5mn4vhLFhbkj4Ka1J9VVmsQs1wiXpdwDABCs+sT2VhPHiNiYV4D5KC4KswPUwmDg7M6WYBeBXkt+/3jTcu3X2sM39Euq5nSMJHN9kHBut1XLohpc7FFiFi2GQJGOL88iveSjcUtzfSCAfitRAFZVoyxKwSUCLDS5dnMbEhHLlJaDm8E9dDWR3r0tYSIfinTkmyMUI3qJF9xR0120tPyBRGdJNj9oio6ffMXqrvZHO97zpVXfBj09S2zt0M3ZLac1h1AyohT89cMFdodvkmwZVsRAybiQrTxU1t5cKuFmBMdKmNWzOLMJ4VCNcT72eN6BjWa2+3bisFecO+kEM3h/pbV8vazKE2xt15UI722dKoPFWr0F5RjJNPdGgJMdaUPEjcSIv/Y8jY27HnzHE4QDHrdzvBFtd3YOrSuhLnpjxRc1dKPAeYnxOrmGQFlnHIph4dgCa+eNZtoJ1/LwvWV3qWmBJ+wdI40HBHnIIMTcdMv0eF7/lemqRtqFhl9ClV+oPssTzfZWRoI2O+8XnvRU2BuGvDLfEcI0W7s6AHDhGG4ghbfj2v//j8XgsWTe42pbvNGmQT5ZjpH7ymU1LksHNNv6l+3o/qYEL7P3ATE+Zv1SOrkw7kY1J3+1qGYYdzhXZ63lO0hohB8hOxvlcsCozeeXeEh6JbO8gVz/Xn2pi01IHNsYawUDMYiG4TWJ8GBo68o3jl46QUrvYsNcUKqjkd0/9RdVxP6/pLBo7O5b1W1Sdp/37qR61egrlt+zuwYeCAa9LKr6B5vdJW037frvL3Uk/AbeBsEN9c0kZEePFPHwBIvalucnhXypEFG+p38lacXMrY6Npit9ZE+B/DK+e9GTete09dfNCM6GUgRI3eFQ9ABzdDNK9f1kVjg+Wl4ovKPJZv27Be1ENCmlMxWDAjBgkqhkiG9w0BCRUxFgQUWnZX6Sn5f1CTzZMTZlF1VOyoEpUwMQYJKoZIhvcNAQkUMSQeIgBvAHIAZQBvAHIAZQAtAG0AZABtAC0AZABlAHYAaQBjAGUwLTAhMAkGBSsOAwIaBQAEFHjORBVsi0afWBkPNjjbkzktwkuwBAgqz80Bu9Gk0w==
+          AZURE_STORAGE_ACCOUNT: devstoreaccount1
+          AZURE_STORAGE_ACCESS_KEY: Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+          AZURE_STORAGE_BLOB_HOST: http://azurite:10000/devstoreaccount1
+          AZURE_STORAGE_CONTAINER_NAME: oreore-ios-mdm-test

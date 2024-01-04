@@ -1,0 +1,24 @@
+<%
+@group = Ddm::DeviceGroup.find(params[:id])
+%>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/device_groups">Device groups</a> &gt; <%= @group.name %>
+
+<div class="container">
+<h2>Device group: <%= @group.name %></h2>
+
+<div class="alert alert-warning" role="alert">
+  <h4 class="alert-heading">Warning</h4>
+  <p>Activations, Assets, Management properties can refer the device group name.</p>
+  <p>Renaming the device group will break the references. Please fix it manually.</p>
+</div>
+
+<form action="<%= @form_post_url %>" method="post">
+
+<div class="mb-3">
+  <label for="input_name" class="form-label">Name</label>
+  <input type="text" class="form-control" id="input_name" name="name" value="<%= @group.name %>">
+</div>
+
+<button type="submit" class="btn btn-primary">Submit</button>
+</form>
+</div>

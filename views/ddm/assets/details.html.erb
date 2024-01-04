@@ -1,0 +1,58 @@
+<%
+@asset = Ddm::Asset.find(params[:id])
+@asset_detail = params[:detail_id].present? ? @asset.details.find(params[:detail_id]) : @asset.details.build
+%>
+<% if @asset_detail.new_record? %>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/assets">Assets</a> &gt; <%= @asset.name %>
+<% else %>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/assets">Assets</a> &gt; <a href="/ddm/assets/<%= @asset.id %>/details"><%= @asset.name %></a> &gt; <%= @asset_detail.target_identifier %>
+<% end %>
+
+<div class="container">
+<h2>Asset: <%= @asset.name %></h2>
+
+<% if @asset_detail.new_record? %>
+<div class="list-group">
+  <% Ddm::Asset.details_priority_sorted(id: @asset.id).each do |asset, details| %>
+    <% details.each do |asset_detail| %>
+    <a href="/ddm/assets/<%= asset.id %>/details/<%= asset_detail.id %>" class="list-group-item list-group-item-action">
+      [<%= asset_detail.target_identifier || 'FALLBACK' %>]
+      <pre><%= { 'type' => asset.type }.merge(asset_detail.payload).to_yaml %></pre>
+    </a>
+    <% end %>
+  <% end %>
+</div>
+<% end %>
+
+<% if @asset_detail.new_record? %>
+<h3>New target</h3>
+<% else %>
+<h3>Edit target</h3>
+<% end %>
+<form class="card p-3" action="/ddm/assets/<%= @asset.id %>/details" method="post">
+  <div class="mb-3">
+    <label for="form_target_identifier" class="form-label">Target (serial_number, group_name, or blank for all devices)</label>
+    <input id="form_target_identifier" name="target_identifier" list="target_options" type="text" value="<%= @asset_detail.target_identifier %>" class="form-control">
+    <datalist id="target_options">
+    <% Ddm::DeviceGroup.target_options.each do |value| %>
+      <option value="<%= value %>">
+    <% end %>
+    </datalist>
+  </div>
+
+  <div class="mb-3">
+    <label for="input_type" class="form-label">Type</label>
+    <input type="text" class="form-control" id="input_type" name="type" value="<%= @asset.type %>" readonly>
+  </div>
+
+  <div class="mb-3">
+    <label for="input_payload" class="form-label">Payload</label>
+    <textarea class="form-control" id="input_payload" name="payload" rows="20"><%=
+    @asset_detail.payload.to_yaml
+    %></textarea>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+</div>

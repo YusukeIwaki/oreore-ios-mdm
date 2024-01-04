@@ -1,0 +1,49 @@
+<%
+@activation =
+  if params[:id] == 'new'
+    Ddm::Activation.new
+  else
+    Ddm::Activation.find(params[:id])
+  end
+@form_post_url =
+  if @activation.new_record?
+    '/ddm/activations'
+  else
+    "/ddm/activations/#{params[:id]}"
+  end
+%>
+<a href="/">TOP</a> &gt; <a href="/ddm">Declarative Device Management</a> &gt; <a href="/ddm/activations">Activations</a> &gt; <%= @activation.name || 'NEW' %>
+
+<div class="container">
+<h2>Activation: <%= @activation.name || 'NEW' %></h2>
+
+<form action="<%= @form_post_url %>" method="post">
+  <% if @activation.new_record? %>
+  <div class="mb-3">
+    <label for="input_name" class="form-label">Name</label>
+    <input type="text" class="form-control" id="input_name" name="name" value="<%= @activation.name %>">
+  </div>
+  <% end %>
+
+  <div class="mb-3">
+    <label for="input_type" class="form-label">Type</label>
+    <input type="text" class="form-control" id="input_type" name="type" value="com.apple.activation.simple" readonly>
+  </div>
+
+  <div class="mb-3">
+    <label for="input_payload" class="form-label">Payload</label>
+    <textarea class="form-control" id="input_payload" name="payload" rows="20"><%=
+    @activation.payload.to_yaml
+    %></textarea>
+  </div>
+
+  <div class="mb-3">
+    <label for="input_target_identifiers" class="form-label">Target identifiers (describe serial_number or group_name into a line for each, or keep blank for all devices)</label>
+    <textarea class="form-control" id="input_target_identifiers" name="target_identifiers" rows="10"><%=
+    @activation.targets.pluck(:target_identifier).join("\n")
+    %></textarea>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+</div>

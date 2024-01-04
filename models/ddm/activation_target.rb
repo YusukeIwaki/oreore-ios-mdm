@@ -14,5 +14,31 @@ module Ddm
 
       where(target_identifier: target_identifiers).or(applied_for_all_devices)
     end
+
+    def self.display_sorted
+      sort_map = Enumerator.new do |out|
+        out << nil
+        Ddm::DeviceGroup.preload(:items).each do |group|
+          out << group.name
+          group.items.each do |item|
+            out << item.device_identifier
+          end
+        end
+      end.to_a
+      activation_target_group = Ddm::ActivationTarget.preload(:activation).group_by(&:target_identifier)
+
+      Enumerator.new do |out|
+        sort_map.each do |target_identifier|
+          activation_target_group[target_identifier]&.each do |activation_target|
+            out << activation_target
+          end
+        end
+
+        Ddm::ActivationTarget.where.not(target_identifier: sort_map).each do |activation_target|
+          next if activation_target.target_identifier.nil?
+          out << activation_target
+        end
+      end
+    end
   end
 end
