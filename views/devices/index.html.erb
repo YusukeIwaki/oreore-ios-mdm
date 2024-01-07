@@ -35,5 +35,12 @@
 
 <hr/>
 <div class="container">
-<a href="/ddm">Manage declarative device management resources</a>
+misc
+<ul>
+  <li><a href="/ddm">Manage declarative device management resources</a></li>
+  <li><a href="/rts/wifi_profiles">Manage Return to Service</a></li>
+  <% if ENV['VPP_TOKEN'].present? %>
+  <li><a href="/vpp/assets">Manage Apps and Books</a></li>
+  <% end %>
+</ul>
 </div>

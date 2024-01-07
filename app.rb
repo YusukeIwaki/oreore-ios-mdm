@@ -774,6 +774,45 @@ class SimpleAdminConsole < Sinatra::Base
     redirect '/rts/wifi_profiles'
   end
 
+  get '/vpp/assets' do
+    login_required
+    erb :'vpp/assets/index.html'
+  end
+
+  get '/vpp/assets/:adam_id/assignments' do
+    login_required
+    erb :'vpp/assets/assignments.html'
+  end
+
+  post '/vpp/assets/:adam_id/assignments' do
+    login_required
+
+    adam_id = params[:adam_id]
+    serial_number = params[:serial_number]
+    vpp = VppClient.new
+    res = vpp.post('assets/associate', {
+      assets: [
+        { adamId: adam_id },
+      ],
+      serialNumbers: [
+        serial_number,
+      ],
+    })
+    event_id = res['eventId']
+
+    10.times do
+      event = vpp.get('status', { eventId: event_id })
+      puts "event=#{event}"
+      if event['eventStatus'] != 'PENDING'
+        break
+      else
+        sleep 0.6
+      end
+    end
+
+    redirect "/vpp/assets/#{adam_id}/assignments"
+  end
+
   get '/ddm' do
     login_required
     erb :'ddm/index.html'
