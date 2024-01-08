@@ -1,8 +1,7 @@
 class VppClient
-  def initialize
-    token = ENV['VPP_TOKEN'] or raise 'VPP_TOKEN not set'
+  def initialize(token_value)
     @faraday = Faraday.new('https://vpp.itunes.apple.com/mdm/v2') do |builder|
-      builder.request :authorization, 'Bearer', token
+      builder.request :authorization, 'Bearer', token_value
       builder.request :json
       builder.response :json
       builder.response :logger

@@ -1,7 +1,8 @@
 <%
+@vpp_content_token = VppContentToken.find_by!(filename: params[:filename])
 @app = VppClient.fetch_app_information(params[:adam_id])
 %>
-<a href="/">TOP</a> &gt; App and Book management &gt; <a href="/vpp/assets">Assets</a> &gt; <%= params[:adam_id] %>
+<a href="/">TOP</a> &gt; <a href="/vpp">App and Book management</a> &gt; <a href="/vpp/<%= @vpp_content_token.url_encoded_filename %>"><%= @vpp_content_token.filename %></a> &gt; <%= params[:adam_id] %>
 
 <div class="container">
 <h2><%= @app['name'] %></h2>
@@ -18,7 +19,7 @@ response_assignment_members = [
   'pricingParam', # String: Quality of a product in the store (STDQ, PLUS)
   'serialNumber', # String: Unique identifier for a device in your organization
 ]
-assignments_response = VppClient.new.get('assignments', { adamId: params[:adam_id] })
+assignments_response = VppClient.new(@vpp_content_token.value).get('assignments', { adamId: params[:adam_id] })
 %>
 
 <table class="table">
@@ -40,7 +41,7 @@ assignments_response = VppClient.new.get('assignments', { adamId: params[:adam_i
 </tbody>
 </table>
 
-<form class="card p-3" action="/vpp/assets/<%= params[:adam_id] %>/assignments" method="post">
+<form class="card p-3" action="/vpp/<%= @vpp_content_token.url_encoded_filename %>/<%= params[:adam_id] %>/assignments" method="post">
   <div class="row mb-3">
     <div class="col">
       <label for="input_adam_id" class="form-label">Adam ID</label>

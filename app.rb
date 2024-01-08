@@ -774,43 +774,49 @@ class SimpleAdminConsole < Sinatra::Base
     redirect '/rts/wifi_profiles'
   end
 
-  get '/vpp/assets' do
+  get '/vpp' do
     login_required
-    erb :'vpp/assets/index.html'
+    erb :'vpp/index.html'
   end
 
-  get '/vpp/assets/:adam_id/assignments' do
+  post '/vpp' do
     login_required
-    erb :'vpp/assets/assignments.html'
-  end
-
-  post '/vpp/assets/:adam_id/assignments' do
-    login_required
-
-    adam_id = params[:adam_id]
-    serial_number = params[:serial_number]
-    vpp = VppClient.new
-    res = vpp.post('assets/associate', {
-      assets: [
-        { adamId: adam_id },
-      ],
-      serialNumbers: [
-        serial_number,
-      ],
-    })
-    event_id = res['eventId']
-
-    10.times do
-      event = vpp.get('status', { eventId: event_id })
-      puts "event=#{event}"
-      if event['eventStatus'] != 'PENDING'
-        break
-      else
-        sleep 0.6
-      end
+    vpp_token_file = params[:vpptoken_file]
+    if vpp_token_file
+      VppContentToken.update_from(vpp_token_file[:filename], vpp_token_file[:tempfile].read)
     end
+    redirect '/vpp'
+  end
 
-    redirect "/vpp/assets/#{adam_id}/assignments"
+  get '/vpp/:filename' do
+    login_required
+    erb :'vpp/show.html'
+  end
+
+  get '/vpp/:filename/:adam_id' do
+    login_required
+    erb :'vpp/assignments.html'
+  end
+
+  get '/vpp/:filename/:adam_id/assignments' do
+    # just in case POST /vpp/:filename/:adam_id/assignments is redirected into login and callbacked to the URL.
+    login_required
+    vpp_content_token = VppContentToken.find_by!(filename: params[:filename])
+    redirect "/vpp/#{vpp_content_token.url_encoded_filename}/#{params[:adam_id]}"
+  end
+
+  post '/vpp/:filename/:adam_id/assignments' do
+    login_required
+    vpp_content_token = VppContentToken.find_by!(filename: params[:filename])
+    adam_id = params[:adam_id]
+
+    license = VppLicenseForm.new(
+      adam_id: adam_id,
+      serial_number: params[:serial_number],
+    )
+    license.associate(vpp_content_token)
+
+    redirect "/vpp/#{vpp_content_token.url_encoded_filename}/#{adam_id}"
   end
 
   get '/ddm' do

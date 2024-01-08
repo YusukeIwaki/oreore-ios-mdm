@@ -1,7 +1,10 @@
-<a href="/">TOP</a> &gt; App and Book management &gt; Assets
+<% @vpp_content_token = VppContentToken.find_by!(filename: params[:filename]) %>
+
+<a href="/">TOP</a> &gt; <a href="/vpp">App and Book management</a> &gt; <%= @vpp_content_token.filename %>
 
 <div class="container">
-<h2>Assets</h2>
+<h2><%= params[:filename] %></h2>
+<h3>Assets</h2>
 
 <%
 response_asset_members = [
@@ -16,7 +19,7 @@ response_asset_members = [
   'totalCount',         # Integer: Total amount of the asset
   'supportedPlatforms', # Array of Strings: Platforms that the asset supports (iOS, macOS, tvOS, watchOS)
 ]
-assets_response = VppClient.new.get('assets')
+assets_response = VppClient.new(@vpp_content_token.value).get('assets')
 %>
 <table class="table table-hover">
 <thead>
@@ -28,7 +31,7 @@ assets_response = VppClient.new.get('assets')
   </thead>
 <tbody>
   <% assets_response['assets'].each do |asset| %>
-  <tr onclick="location.href='/vpp/assets/<%= asset["adamId"] %>/assignments'">
+  <tr onclick="location.href='/vpp/<%= @vpp_content_token.url_encoded_filename %>/<%= asset["adamId"] %>'">
     <% response_asset_members.each do |member| %>
     <td><%= asset[member] %></td>
     <% end %>

@@ -21,7 +21,6 @@ services:
       - PUSH_CERTIFICATE_BASE64
       - SERVER_PRIVATE_KEY_BASE64
       - DEVICE_CERTIFICATE_BASE64
-      - VPP_TOKEN
     volumes:
       - .:/app
       - bundle-data:/usr/local/bundle

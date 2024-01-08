@@ -104,6 +104,20 @@ add_index 'rts_wifi_profiles',
   unique: true,
   using: :btree
 
+create_table 'vpp_content_tokens', force: :cascade do |t|
+  t.string 'filename', null: false
+  t.string 'value', null: false
+  t.datetime 'exp_date', null: false
+  t.datetime 'created_at', null: false
+  t.datetime 'updated_at', null: false
+end
+
+add_index 'vpp_content_tokens',
+  ['filename'],
+  name: 'index_vpp_content_tokens_filename',
+  unique: true,
+  using: :btree
+
 create_table 'ddm_device_groups', force: :cascade do |t|
   t.string 'name', null: false
   t.datetime 'created_at', null: false
