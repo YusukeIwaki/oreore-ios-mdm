@@ -1,0 +1,19 @@
+<a href="/">TOP</a> &gt; App and Book management
+
+<div class="container">
+<h2>Content tokens</h2>
+<div class="list-group">
+<% VppContentToken.find_each do |content_token| %>
+  <a href="/vpp/<%= content_token.url_encoded_filename %>" class="list-group-item list-group-item-action"><%= content_token.filename %></a>
+<% end %>
+</div>
+
+<h3>Upload VPP content token</h3>
+<form class="card p-3" action="/vpp" method="post" enctype="multipart/form-data">
+  <div class="mb-3">
+    <label for="form_vpptoken_file" class="form-label">File</label>
+    <input id="form_vpptoken_file" name="vpptoken_file" type="file" class="form-control" required>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>

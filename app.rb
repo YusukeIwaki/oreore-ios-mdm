@@ -774,6 +774,51 @@ class SimpleAdminConsole < Sinatra::Base
     redirect '/rts/wifi_profiles'
   end
 
+  get '/vpp' do
+    login_required
+    erb :'vpp/index.html'
+  end
+
+  post '/vpp' do
+    login_required
+    vpp_token_file = params[:vpptoken_file]
+    if vpp_token_file
+      VppContentToken.update_from(vpp_token_file[:filename], vpp_token_file[:tempfile].read)
+    end
+    redirect '/vpp'
+  end
+
+  get '/vpp/:filename' do
+    login_required
+    erb :'vpp/show.html'
+  end
+
+  get '/vpp/:filename/:adam_id' do
+    login_required
+    erb :'vpp/assignments.html'
+  end
+
+  get '/vpp/:filename/:adam_id/assignments' do
+    # just in case POST /vpp/:filename/:adam_id/assignments is redirected into login and callbacked to the URL.
+    login_required
+    vpp_content_token = VppContentToken.find_by!(filename: params[:filename])
+    redirect "/vpp/#{vpp_content_token.url_encoded_filename}/#{params[:adam_id]}"
+  end
+
+  post '/vpp/:filename/:adam_id/assignments' do
+    login_required
+    vpp_content_token = VppContentToken.find_by!(filename: params[:filename])
+    adam_id = params[:adam_id]
+
+    license = VppLicenseForm.new(
+      adam_id: adam_id,
+      serial_number: params[:serial_number],
+    )
+    license.associate(vpp_content_token)
+
+    redirect "/vpp/#{vpp_content_token.url_encoded_filename}/#{adam_id}"
+  end
+
   get '/ddm' do
     login_required
     erb :'ddm/index.html'

@@ -1,0 +1,60 @@
+<%
+@vpp_content_token = VppContentToken.find_by!(filename: params[:filename])
+@app = VppClient.fetch_app_information(params[:adam_id])
+%>
+<a href="/">TOP</a> &gt; <a href="/vpp">App and Book management</a> &gt; <a href="/vpp/<%= @vpp_content_token.url_encoded_filename %>"><%= @vpp_content_token.filename %></a> &gt; <%= params[:adam_id] %>
+
+<div class="container">
+<h2><%= @app['name'] %></h2>
+
+<div class="card p-3">
+<pre><%= ERB::Util.h(JSON.pretty_generate(@app)) %></pre>
+</div>
+
+<h3>License assignments</h3>
+<%
+response_assignment_members = [
+  'adamId',       # String: Unique identifier for a product in the store
+  'clientUserId', # String: Unique identifier for an active user in your organization
+  'pricingParam', # String: Quality of a product in the store (STDQ, PLUS)
+  'serialNumber', # String: Unique identifier for a device in your organization
+]
+assignments_response = VppClient.new(@vpp_content_token.value).get('assignments', { adamId: params[:adam_id] })
+%>
+
+<table class="table">
+<thead>
+  <tr>
+    <% response_assignment_members.each do |member| %>
+    <th scope="col"><%= member %></th>
+    <% end %>
+  </tr>
+  </thead>
+<tbody>
+  <% assignments_response['assignments'].each do |assignment| %>
+  <tr>
+    <% response_assignment_members.each do |member| %>
+    <td><%= assignment[member] %></td>
+    <% end %>
+  </tr>
+  <% end %>
+</tbody>
+</table>
+
+<form class="card p-3" action="/vpp/<%= @vpp_content_token.url_encoded_filename %>/<%= params[:adam_id] %>/assignments" method="post">
+  <div class="row mb-3">
+    <div class="col">
+      <label for="input_adam_id" class="form-label">Adam ID</label>
+      <input type="text" class="form-control" id="input_adam_id" name="adam_id" value="<%= params[:adam_id] %>" readonly>
+    </div>
+
+    <div class="col">
+      <label for="input_serial_number" class="form-label">Serial number</label>
+      <input type="text" class="form-control" id="input_serial_number" name="serial_number">
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Add</button>
+</form>
+
+</div>

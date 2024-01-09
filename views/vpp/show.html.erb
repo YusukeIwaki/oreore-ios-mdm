@@ -1,0 +1,42 @@
+<% @vpp_content_token = VppContentToken.find_by!(filename: params[:filename]) %>
+
+<a href="/">TOP</a> &gt; <a href="/vpp">App and Book management</a> &gt; <%= @vpp_content_token.filename %>
+
+<div class="container">
+<h2><%= params[:filename] %></h2>
+<h3>Assets</h2>
+
+<%
+response_asset_members = [
+  'adamId',             # String: Unique identifier for the product in the store
+  'assignedCount',      # Integer: Assigned amount of the asset
+  'availableCount',     # Integer: Available amount of the asset
+  'deviceAssignable',   # Boolean: Flag denoting whether the asset is device-assignable
+  'pricingParam',       # String: Quality of the product in the store (STDQ, PLUS)
+  'productType',        # String: Asset product type (App, Book)
+  'retiredCount',       # Integer: Retired amount of the asset
+  'revocable',          # Boolean: Flag denoting whether the asset is revocable
+  'totalCount',         # Integer: Total amount of the asset
+  'supportedPlatforms', # Array of Strings: Platforms that the asset supports (iOS, macOS, tvOS, watchOS)
+]
+assets_response = VppClient.new(@vpp_content_token.value).get('assets')
+%>
+<table class="table table-hover">
+<thead>
+  <tr>
+    <% response_asset_members.each do |member| %>
+    <th scope="col"><%= member %></th>
+    <% end %>
+  </tr>
+  </thead>
+<tbody>
+  <% assets_response['assets'].each do |asset| %>
+  <tr onclick="location.href='/vpp/<%= @vpp_content_token.url_encoded_filename %>/<%= asset["adamId"] %>'">
+    <% response_asset_members.each do |member| %>
+    <td><%= asset[member] %></td>
+    <% end %>
+  </tr>
+  <% end %>
+</tbody>
+</table>
+</div>
