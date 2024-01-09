@@ -1,15 +1,17 @@
 <%
 @vpp_content_token = VppContentToken.find_by!(filename: params[:filename])
-@app = VppClient.fetch_app_information(params[:adam_id])
 %>
 <a href="/">TOP</a> &gt; <a href="/vpp">App and Book management</a> &gt; <a href="/vpp/<%= @vpp_content_token.url_encoded_filename %>"><%= @vpp_content_token.filename %></a> &gt; <%= params[:adam_id] %>
 
 <div class="container">
+<% if params[:page_index].blank? %>
+<% @app = VppClient.fetch_app_information(params[:adam_id]) %>
 <h2><%= @app['name'] %></h2>
 
 <div class="card p-3">
 <pre><%= ERB::Util.h(JSON.pretty_generate(@app)) %></pre>
 </div>
+<% end %>
 
 <h3>License assignments</h3>
 <%
@@ -40,6 +42,14 @@ assignments_response = VppClient.new(@vpp_content_token.value).get('assignments'
   <% end %>
 </tbody>
 </table>
+<% if assignments_response['totalPages'] >= 2 %>
+  <% if assignments_response['currentPageIndex'] >= 1 %>
+  <a href="?page_index=<%= assignments_response['currentPageIndex']-1 %>">PREV</a>
+  <% end %>
+  <% if assignments_response['currentPageIndex'] < assignments_response['totalPages']-1 %>
+  <a href="?page_index=<%= assignments_response['currentPageIndex']+1 %>">NEXT</a>
+  <% end %>
+<% end %>
 
 <form class="card p-3" action="/vpp/<%= @vpp_content_token.url_encoded_filename %>/<%= params[:adam_id] %>/assignments" method="post">
   <div class="row mb-3">
