@@ -16,6 +16,7 @@ gem 'pry'
 gem 'puma'
 gem 'rack'
 gem 'ridgepole'
+gem 'rqrcode'
 gem 'shrine'
 gem 'sinatra', require: false
 gem 'sinatra-activerecord'

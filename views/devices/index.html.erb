@@ -2,13 +2,10 @@
   @mdm_devices = MdmDevice.all
   @byod_devices = ByodDevice.all
 
-  @qr_url = URI('https://chart.googleapis.com/chart').tap do |uri|
-    uri.query = URI.encode_www_form({
-      cht: 'qr',
-      chs: '240x240',
-      chl: "#{ENV['MDM_SERVER_BASE_URL']}/mdm.mobileconfig",
-    })
-  end
+  @qr_svg = RQRCode::QRCode.new("#{ENV['MDM_SERVER_BASE_URL']}/mdm.mobileconfig").as_svg(
+    module_size: 3,
+    use_path: true,
+  )
 %>
 
 <div class="container">
@@ -30,7 +27,7 @@
   no devices
   <% end %>
 
-  <img src="<%= @qr_url %>" />
+  <%= @qr_svg %>
 </div>
 
 <hr/>
