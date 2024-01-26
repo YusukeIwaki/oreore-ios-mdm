@@ -1,0 +1,29 @@
+<a href="/">TOP</a> &gt; Automated Device Enrollment
+<div class="container">
+<h2>Automated Device Enrollment</h2>
+
+<a href="/dep/pub_key.pem" class="btn btn-outline-primary">Download public key file</a>
+
+<p>After downloading, upload the public key file to Apple Business Manager or Apple School Manager.</p>
+
+<hr/>
+
+<h3>DEP server tokens</h3>
+
+<div class="list-group">
+<% DepServerToken.find_each do |dep_server_token| %>
+  <a href="/dep/<%= dep_server_token.url_encoded_filename %>" class="list-group-item list-group-item-action"><%= dep_server_token.filename %></a>
+<% end %>
+</div>
+
+<form action="/dep" method="post" enctype="multipart/form-data" class="card p-3">
+  <div class="mb-3">
+    <label for="input_dep_token_file" class="form-label">DEP token p7m file</label>
+    <input id="input_dep_token_file" name="dep_token_file" type="file" class="form-control" required>
+  </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+<pre>
+<%= @p7 %>
+</pre>

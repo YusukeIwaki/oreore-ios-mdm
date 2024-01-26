@@ -124,6 +124,22 @@ create_table 'ddm_device_groups', force: :cascade do |t|
   t.datetime 'updated_at', null: false
 end
 
+create_table 'dep_server_tokens', force: :cascade do |t|
+  t.string 'filename', null: false
+  t.text 'raw_payload'
+  t.string 'consumer_key', null: false
+  t.string 'consumer_secret', null: false
+  t.string 'access_token', null: false
+  t.string 'access_secret', null: false
+  t.datetime 'access_token_expiry', null: false
+end
+
+add_index 'dep_server_tokens',
+  ['filename'],
+  name: 'index_dep_server_tokens_filename',
+  unique: true,
+  using: :btree
+
 add_index 'ddm_device_groups',
   ['name'],
   name: 'index_ddm_device_groups_name',

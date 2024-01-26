@@ -1,0 +1,38 @@
+<% @dep_server_token = DepServerToken.find_by!(filename: params[:filename]) %>
+
+<a href="/">TOP</a> &gt; <a href="/dep">Automated Device Enrollment</a> &gt; <a href="/dep/<%= @dep_server_token.url_encoded_filename %>"><%= @dep_server_token.filename %></a> &gt; Devices
+<div class="container">
+<h2>DEP devices</h2>
+
+<% begin ; json = DepClient.new(@dep_server_token).post('server/devices', { cursor: params['cursor'] }.compact) %>
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">SERIAL</th>
+      <th scope="col">etc</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% json['devices'].each do |device_json| %>
+      <tr>
+        <th scope="row"><%= device_json['serial_number'] %></th>
+        <td>
+          <pre><%= device_json.except("serial_number").to_yaml.split("\n")[1..].join("\n") %></pre>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+Results until <%= json["fetched_until"] %> are listed.
+<% if json['more_to_follow'] %>
+  <a href="?cursor=<%= json['cursor'] %>">NEXT</a>
+<% end %>
+<% rescue => e %>
+  <% if e.respond_to?(:response) %>
+  <%= e %><br/><%= e.response.body %>
+  <% else %>
+  <%= e %>
+  <% end %>
+<% end %>
+
+</div>

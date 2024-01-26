@@ -45,9 +45,26 @@ class MdmServer < Sinatra::Base
     end
   end
 
-  get '/MDMServiceConfig' do
+  get '/MDMServiceConfig' do # AppleConfigurator: add server
     verbose_print_request
-    halt 404, 'Not supported.'
+
+    content_type 'application/json'
+    {
+      dep_enrollment_url: "#{ENV['MDM_SERVER_BASE_URL']}/mdm/dep_enroll",
+      dep_anchor_certs_url: "#{ENV['MDM_SERVER_BASE_URL']}/mdm/dep_anchor_certs",
+    }.to_json
+  end
+
+  post '/mdm/dep_enroll' do
+    verbose_print_request
+    content_type 'application/x-apple-aspen-config'
+    rb :'mdm.mobileconfig'
+  end
+
+  get '/mdm/dep_anchor_certs' do
+    verbose_print_request
+    content_type 'application/json'
+    '[]'
   end
 
   get '/mdm/appleconfigurator' do # AppleConfigurator: add server
@@ -817,6 +834,50 @@ class SimpleAdminConsole < Sinatra::Base
     license.associate(vpp_content_token)
 
     redirect "/vpp/#{vpp_content_token.url_encoded_filename}/#{adam_id}"
+  end
+
+  get '/dep' do
+    login_required
+    erb :'dep/index.html'
+  end
+
+  post '/dep' do
+    login_required
+    dep_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV['DEP_KEY_BASE64']))
+    dep_token_file = params[:dep_token_file]
+    if dep_token_file
+      DepServerToken.update_from(dep_token_file[:filename], dep_token_file[:tempfile].read)
+    end
+    erb :'dep/index.html'
+  end
+
+  get '/dep/pub_key.pem' do
+    login_required
+    dep_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV['DEP_KEY_BASE64']))
+
+    issuer = subject = OpenSSL::X509::Name.new([["CN", "oreore-mdm DEP"]])
+    cert = OpenSSL::X509::Certificate.new
+    cert.not_before = Time.now
+    cert.not_after = Time.now + 60 * 60 * 24 * 365
+    cert.public_key = dep_key.public_key
+    cert.serial = 0
+    cert.issuer = issuer
+    cert.subject = subject
+    cert.sign(dep_key, OpenSSL::Digest::SHA256.new)
+
+    content_type 'application/x-pem-file'
+    attachment 'pub_key.pem'
+    cert.to_pem
+  end
+
+  get '/dep/:filename' do
+    login_required
+    erb :'dep/show.html'
+  end
+
+  get '/dep/:filename/devices' do
+    login_required
+    erb :'dep/devices.html'
   end
 
   get '/ddm' do

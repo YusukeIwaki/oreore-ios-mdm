@@ -39,7 +39,7 @@ device_pkcs12 = OpenSSL::PKCS12.create(
 
 File.open('util/device.p12', 'wb') { |f| f.write(device_pkcs12.to_der) }
 
-puts "set an environment variable:"
+puts "set environment variables:"
 puts "  PUSH_CERTIFICATE_BASE64=#{Base64.strict_encode64(p12.to_der)}"
 puts "  SERVER_PRIVATE_KEY_BASE64=#{Base64.strict_encode64(server_key.to_pem)}"
 puts "  DEVICE_CERTIFICATE_BASE64=#{Base64.strict_encode64(device_pkcs12.to_der)}"

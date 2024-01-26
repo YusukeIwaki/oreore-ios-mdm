@@ -21,6 +21,7 @@ services:
       - PUSH_CERTIFICATE_BASE64
       - SERVER_PRIVATE_KEY_BASE64
       - DEVICE_CERTIFICATE_BASE64
+      - DEP_KEY_BASE64
     volumes:
       - .:/app
       - bundle-data:/usr/local/bundle

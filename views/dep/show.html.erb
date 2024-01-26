@@ -1,0 +1,12 @@
+<% @dep_server_token = DepServerToken.find_by!(filename: params[:filename]) %>
+
+<a href="/">TOP</a> &gt; <a href="/dep">Automated Device Enrollment</a> &gt; <%= @dep_server_token.filename %>
+<div class="container">
+<h2><%= params[:filename] %></h2>
+
+<ul>
+  <li><a href="/dep/<%= @dep_server_token.url_encoded_filename %>/devices">Devices</a></li>
+  <li>Profiles</li>
+<ul>
+
+</div>

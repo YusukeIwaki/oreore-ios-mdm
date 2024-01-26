@@ -182,6 +182,7 @@ DEPENDENCIES
   azure-storage-blob
   data_class_factory
   faraday
+  faraday-retry
   omniauth
   omniauth-google-oauth2
   pg
