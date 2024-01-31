@@ -1,10 +1,14 @@
+<%
+  selected_command = params[:command].presence
+  my_endpoint_path = "/byod/devices/#{params[:enrollment_id]}/command_request_form_inner"
+%>
 <%#
 device = ByodDevice.find_by!(enrollment_id: params[:enrollment_id])
 declarativemanagement_device_identifier = device.managed_apple_account&.email_local_part
 %>
 
 <turbo-frame id="command_request_form_inner">
-  <select class="form-select form-select-sm mb-3" onchange="document.getElementById('command_request_form_inner').src = '/devices/<%= params[:enrollment_id] %>/command_request_form_inner?command=' + this.value">
+  <select class="form-select form-select-sm mb-3" onchange="document.getElementById('command_request_form_inner').src = '<%= my_endpoint_path %>?command=' + this.value">
   <%
     [
       ['', 'Custom'],
@@ -13,14 +17,14 @@ declarativemanagement_device_identifier = device.managed_apple_account&.email_lo
       ['ProfileList', 'ProfileList'],
     ].each do |value, label|
   %>
-    <option value="<%= value %>" <%= value == params[:command] ? 'selected' : '' %>><%= label %></option>
+    <option value="<%= value %>" <%= value == selected_command ? 'selected' : '' %>><%= label %></option>
   <% end %>
   </select>
   <div class="mb-3">
     <label for="input_payload" class="form-label">Payload</label>
     <textarea class="form-control" id="input_payload" name="payload" rows="10"><%=
-if params[:command] && Command.const_defined?(params[:command])
-  klass = Command.const_get(params[:command])
+if selected_command && Command.const_defined?(selected_command)
+  klass = Command.const_get(selected_command)
   command = klass.try(:template_new) || klass.new
   command.request_payload.to_plist.strip
 else
