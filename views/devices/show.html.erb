@@ -10,23 +10,7 @@
 
   <h2>Commands</h2>
   <form action="/devices/<%= @device.udid %>/commands" class="card p-2" method="post">
-    <select class="form-select form-select-sm mb-3" id="select_template">
-      <option value=''>Custom</option>
-      <option value="DeclarativeManagement">DeclarativeManagement</option>
-      <option value="DeviceInformation">DeviceInformation</option>
-      <option value="InstalledApplicationList">InstalledApplicationList</option>
-      <option value="ProfileList">ProfileList</option>
-      <option value="InstallProfile">InstallProfile</option>
-      <option value="RemoveProfile">RemoveProfile</option>
-      <option value="EnableLostMode">EnableLostMode</option>
-      <option value="DeviceLocation">DeviceLocation</option>
-      <option value="DisableLostMode">DisableLostMode</option>
-      <option value="EraseDevice">EraseDevice</option>
-    </select>
-    <div class="mb-3">
-      <label for="input_payload" class="form-label">Payload</label>
-      <textarea class="form-control" id="input_payload" name="payload" rows="10"></textarea>
-    </div>
+    <%= erb :'devices/_command_request_form_inner.html' %>
     <button type="submit" class="btn btn-outline-primary">Enqueue command</button>
   </form>
 
@@ -37,7 +21,6 @@
 
   <%= erb :'devices/_command_queue.html', locals: {
     command_queue: @command_queue,
-    declarativemanagement_device_identifier: @device.serial_number,
   } %>
 
   <h2>DeclarativeManagement Synchronization History</h2>

@@ -19,7 +19,7 @@
 <div class="alert alert-danger m-3"><%= @error %></div>
 <% end %>
 
-<form method="post" class="card p-3 m-3">
+<form data-turbo="false" method="post" class="card p-3 m-3">
   <div class="form-group mb-3">
     <label for="inputEmail">Email</label>
     <input type="email" class="form-control" id="inputEmail" name="email" value="<%= account.email %>" readonly />

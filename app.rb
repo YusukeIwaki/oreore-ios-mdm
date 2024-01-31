@@ -698,6 +698,11 @@ class SimpleAdminConsole < Sinatra::Base
     erb :'devices/show.html'
   end
 
+  get '/devices/:udid/command_request_form_inner' do
+    login_required
+    erb :'devices/_command_request_form_inner.html', layout: false
+  end
+
   get '/devices/:udid/synchronization_request_histories/:id' do
     login_required
     erb :'devices/synchronization_request_history.html'
@@ -706,33 +711,6 @@ class SimpleAdminConsole < Sinatra::Base
   get '/commands/:command_uuid' do
     login_required
     erb :'mdm_command_history.html'
-  end
-
-  post '/commands/template.txt' do
-    if params[:class] == 'DeclarativeManagement'
-      declaration = DeclarativeManagement::Declaration.new(params[:declarativemanagement_device_identifier])
-      command = Command::DeclarativeManagement.new(tokens: declaration.tokens)
-      command.request_payload.to_plist
-    elsif params[:class] == 'EraseDevice'
-      rts_wifi_profile = Rts::WifiProfile.order(:name).first
-      if rts_wifi_profile
-        command = Command::EraseDevice.new(
-          rts_enabled: true,
-          rts_wifi_profile_data: rts_wifi_profile.asset_file.read,
-          rts_mdm_profile_data: rb(:'mdm.mobileconfig'),
-        )
-        command.request_payload.to_plist
-      else
-        command = Command::EraseDevice.new(rts_enabled: false)
-        command.request_payload.to_plist
-      end
-    elsif params[:class] && Command.const_defined?(params[:class])
-      klass = Command.const_get(params[:class])
-      command = klass.try(:template_new) || klass.new
-      command.request_payload.to_plist
-    else
-      ''
-    end
   end
 
   post '/devices/:udid/commands' do
@@ -755,6 +733,11 @@ class SimpleAdminConsole < Sinatra::Base
   get '/byod/devices/:enrollment_id' do
     login_required
     erb :'byod/devices/show.html'
+  end
+
+  get '/byod/devices/:enrollment_id/command_request_form_inner' do
+    login_required
+    erb :'byod/devices/_command_request_form_inner.html', layout: false
   end
 
   post '/byod/devices/:enrollment_id/commands' do
