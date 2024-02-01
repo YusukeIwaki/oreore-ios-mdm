@@ -1,10 +1,10 @@
 <% if ENV['GOOGLE_CLIENT_ID'].present? %>
-<form action="/auth/google_oauth2" method="post" class="p-2">
+<form data-turbo="false" action="/auth/google_oauth2" method="post" class="p-2">
 <input type="hidden" name="authenticity_token" value='<%= request.env["rack.session"]["csrf"] %>'>
 <button type="submit" class="btn btn-primary">Login with Google</button>
 </form>
 <% else %>
-<form action="/auth/developer" method="post" class="p-2">
+<form data-turbo="false" action="/auth/developer" method="post" class="p-2">
 <input type="hidden" name="authenticity_token" value='<%= request.env["rack.session"]["csrf"] %>'>
 <button type="submit" class="btn btn-primary">Login for debug</button>
 </form>

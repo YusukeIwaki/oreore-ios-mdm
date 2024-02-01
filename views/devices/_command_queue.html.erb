@@ -2,7 +2,6 @@
   @command_requests = command_queue.command_requests.order(id: :asc)
   @command_handling_requests = command_queue.command_handling_requests.order(id: :asc)
   @command_histories = command_queue.command_histories.select(:command_uuid, :request_type, :created_at).order(id: :asc)
-  @declarativemanagement_device_identifier = declarativemanagement_device_identifier
 %>
 
 <% if @command_requests.present? %>
@@ -31,52 +30,6 @@ No commands.
 <% else %>
 No commands.
 <% end %>
-
-<script type="text/javascript">
-function request(method, url, form) {
-  return new Promise(function(resolve, reject) {
-    let req = new XMLHttpRequest();
-    req.open(method, url);
-
-    req.onload = function() {
-      if (req.status == 200) {
-        resolve(req.response);
-      }
-      else {
-        reject(Error(req.statusText));
-      }
-    };
-
-    req.onerror = () => {
-      reject(Error("ERROR"));
-    };
-
-    req.send(form);
-  });
-}
-
-let selectTemplate = document.getElementById('select_template')
-selectTemplate.addEventListener('change', (event) => {
-  let payload = document.getElementById('input_payload')
-  let selected = event.target.value
-  if (selected == 'DeclarativeManagement') {
-    let form = new FormData()
-    form.append('class', 'DeclarativeManagement')
-    form.append('declarativemanagement_device_identifier', '<%= @declarativemanagement_device_identifier %>')
-    request('POST', '/commands/template.txt', form).then((response) => {
-      payload.innerHTML = response.trim()
-    })
-    return
-  }
-  if (!!selected) {
-    let form = new FormData()
-    form.append('class', selected)
-    request('POST', '/commands/template.txt', form).then((response) => {
-      payload.innerHTML = response.trim()
-    })
-  }
-})
-</script>
 
 <h2>Command History</h2>
 <% if @command_histories.present? %>

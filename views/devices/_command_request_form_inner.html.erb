@@ -1,0 +1,84 @@
+<%
+  selected_command = params[:command].presence
+  my_endpoint_path = "/devices/#{params[:udid]}/command_request_form_inner"
+%>
+
+<turbo-frame id="command_request_form_inner">
+  <select class="form-select form-select-sm mb-3" onchange="document.getElementById('command_request_form_inner').src = '<%= my_endpoint_path %>?command=' + this.value">
+  <%
+    [
+      ['', 'Custom'],
+      ['DeclarativeManagement', 'DeclarativeManagement'],
+      ['DeviceInformation', 'DeviceInformation'],
+      ['InstalledApplicationList', 'InstalledApplicationList'],
+      ['ProfileList', 'ProfileList'],
+      ['InstallProfile', 'InstallProfile'],
+      ['RemoveProfile', 'RemoveProfile'],
+      ['EnableLostMode', 'EnableLostMode'],
+      ['DeviceLocation', 'DeviceLocation'],
+      ['DisableLostMode', 'DisableLostMode'],
+      ['EraseDevice', 'EraseDevice'],
+    ].each do |value, label|
+  %>
+    <option value="<%= value %>" <%= value == selected_command ? 'selected' : '' %>><%= label %></option>
+  <% end %>
+  </select>
+  <% case selected_command ; when 'EraseDevice' %>
+  <div class="list-group mb-3">
+    <b>WiFiProfileData</b>
+    <%
+      rts_wifi_profile =
+        if params[:rts_wifi_profile_id].present?
+          Rts::WifiProfile.find(params[:rts_wifi_profile_id])
+        else
+          Rts::WifiProfile.order(:name).first
+        end
+    %>
+    <% Rts::WifiProfile.order(:name).find_each do |wifi_profile| %>
+    <a href="<%= my_endpoint_path %>?command=<%= selected_command %>&rts_wifi_profile_id=<%= wifi_profile.id %>"
+      <% if wifi_profile == rts_wifi_profile %>
+      class="list-group-item list-group-item-action active" aria-current="true">
+      <% else %>
+      class="list-group-item list-group-item-action">
+      <% end %>
+    <%= wifi_profile.name %>
+    </a>
+    <% end %>
+  </div>
+  <% end %>
+
+  <div class="mb-3">
+    <label for="input_payload" class="form-label">Payload</label>
+    <textarea class="form-control" id="input_payload" name="payload" rows="10"><%=
+case selected_command
+when 'DeclarativeManagement'
+  device = MdmDevice.find_by!(udid: params[:udid])
+  declarativemanagement_device_identifier = device.serial_number
+
+  declaration = DeclarativeManagement::Declaration.new(declarativemanagement_device_identifier)
+  command = Command::DeclarativeManagement.new(tokens: declaration.tokens)
+  command.request_payload.to_plist.strip
+when 'EraseDevice'
+  if rts_wifi_profile
+    command = Command::EraseDevice.new(
+      rts_enabled: true,
+      rts_wifi_profile_data: rts_wifi_profile.asset_file.read,
+      rts_mdm_profile_data: rb(:'mdm.mobileconfig'),
+    )
+    command.request_payload.to_plist.strip
+  else
+    command = Command::EraseDevice.new(rts_enabled: false)
+    command.request_payload.to_plist.strip
+  end
+else
+  if selected_command && Command.const_defined?(selected_command)
+    klass = Command.const_get(selected_command)
+    command = klass.try(:template_new) || klass.new
+    command.request_payload.to_plist.strip
+  else
+    ''
+  end
+end
+    %></textarea>
+  </div>
+</turbo-frame>
