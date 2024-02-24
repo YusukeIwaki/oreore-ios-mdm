@@ -118,12 +118,6 @@ add_index 'vpp_content_tokens',
   unique: true,
   using: :btree
 
-create_table 'ddm_device_groups', force: :cascade do |t|
-  t.string 'name', null: false
-  t.datetime 'created_at', null: false
-  t.datetime 'updated_at', null: false
-end
-
 create_table 'dep_server_tokens', force: :cascade do |t|
   t.string 'filename', null: false
   t.text 'raw_payload'
@@ -139,6 +133,12 @@ add_index 'dep_server_tokens',
   name: 'index_dep_server_tokens_filename',
   unique: true,
   using: :btree
+
+create_table 'ddm_device_groups', force: :cascade do |t|
+  t.string 'name', null: false
+  t.datetime 'created_at', null: false
+  t.datetime 'updated_at', null: false
+end
 
 add_index 'ddm_device_groups',
   ['name'],
