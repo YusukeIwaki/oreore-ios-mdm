@@ -1,0 +1,94 @@
+<% @dep_server_token = DepServerToken.find_by!(filename: params[:filename]) %>
+
+<% if params[:profile_uuid] == 'new' %>
+<a href="/">TOP</a> &gt; <a href="/dep">Automated Device Enrollment</a> &gt; <a href="/dep/<%= @dep_server_token.url_encoded_filename %>"><%= @dep_server_token.filename %></a> &gt; Define a new profile %>
+<div class="container">
+<h2>Setup a profile</h2>
+
+<form action="/dep/<%= @dep_server_token.url_encoded_filename %>/profiles" method="post">
+  <div class="mb-3">
+    <label for="input_payload" class="form-label">Payload</label>
+    <textarea class="form-control" id="input_payload" name="payload" rows="20">---
+# https://developer.apple.com/documentation/devicemanagement/profile
+allow_pairing: true
+configuration_web_url: <%= ENV['MDM_SERVER_BASE_URL'] %>/mdm/dep_enroll
+department: oreore-mdm Organization
+devices:
+<% if params[:serial_number] %>
+  - <%= params[:serial_number] %>
+<% else %>
+  - SERIALNUMBER1
+  - SERIALNUMBER2
+<% end %>
+is_mandatory: true
+is_mdm_removable: false
+is_multi_user: false
+is_supervised: true
+language: ja
+profile_name: oreore-mdm DEP profile
+skip_setup_items:
+  - Accessibility
+  - ActionButton
+  - Android
+  - Appearance
+  - AppleID
+  - AppStore
+  - Biometric
+  - DeviceToDeviceMigration
+  - Diagnostics
+  - EnableLockdownMode
+  - iMessageAndFaceTime
+  - Location
+  - MessagingActivationUsingPhoneNumber
+  - OnBoarding
+  - Passcode
+  - Payment
+  - Privacy
+  - Restore
+  - RestoreCompleted
+  - Safety
+  - ScreenTime
+  - SIMSetup
+  - Siri
+  - SoftwareUpdate
+  - TapToSetup
+  - TermsOfAddress
+  - TOS
+  - UpdateCompleted
+  - WatchMigration
+  - Welcome
+  - Zoom
+url: <%= ENV['MDM_SERVER_BASE_URL'] %>/mdm/command
+    </textarea>
+  </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+</div>
+
+<% else %>
+<a href="/">TOP</a> &gt; <a href="/dep">Automated Device Enrollment</a> &gt; <a href="/dep/<%= @dep_server_token.url_encoded_filename %>"><%= @dep_server_token.filename %></a> &gt; Profiles-<%= params[:profile_uuid] %>
+<div class="container">
+<h2>Profile - <%= params[:profile_uuid] %></h2>
+
+<div class="card p-3 mb-4">
+<pre><%=
+json = DepClient.new(@dep_server_token).get('profile', { profile_uuid: params[:profile_uuid] })
+JSON.pretty_generate(json) %></pre>
+</div>
+
+<div class="card p-3 mb-4">
+  <details>
+    <summary>Assign to devices</summary>
+    <form action="/dep/<%= @dep_server_token.url_encoded_filename %>/profiles/<%= params[:profile_uuid] %>/assign" method="post">
+    <div class="mb-3">
+      <label for="input_serial_numbers" class="form-label">Device serial numbers</label>
+      <textarea class="form-control" id="input_serial_numbers" name="serial_numbers" rows="20"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+  </details>
+</div>
+<% end %>
+
+</div>

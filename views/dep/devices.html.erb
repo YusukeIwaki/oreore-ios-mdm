@@ -4,28 +4,51 @@
 <div class="container">
 <h2>DEP devices</h2>
 
-<% begin ; json = DepClient.new(@dep_server_token).post('server/devices', { cursor: params['cursor'] }.compact) %>
+<% begin ;
+if params[:serial_number].present?
+  json = DepClient.new(@dep_server_token).post('devices', { devices: [params[:serial_number]] })
+  json_devices = [json['devices'][params[:serial_number]]]
+else
+  json = DepClient.new(@dep_server_token).post('server/devices', { cursor: params['cursor'] }.compact)
+  json_devices = json['devices']
+end %>
 <table class="table">
   <thead>
     <tr>
       <th scope="col">SERIAL</th>
+      <th scope="col">profile</th>
       <th scope="col">etc</th>
     </tr>
   </thead>
   <tbody>
-    <% json['devices'].each do |device_json| %>
+    <% json_devices.each do |device_json| %>
       <tr>
         <th scope="row"><%= device_json['serial_number'] %></th>
         <td>
-          <pre><%= device_json.except("serial_number").to_yaml.split("\n")[1..].join("\n") %></pre>
+        <% if device_json['profile_uuid'] %>
+        <ul>
+          <li><a href="/dep/<%= @dep_server_token.url_encoded_filename %>/profiles/<%= device_json['profile_uuid'] %>"><%= device_json['profile_uuid'] %></a></li>
+          <li><a href="/dep/<%= @dep_server_token.url_encoded_filename %>/devices/<%= device_json['serial_number'] %>/remove_profile">Remove profile</a></li>
+        </ul>
+        <% else %>
+        <ul>
+          <li><a href="/dep/<%= @dep_server_token.url_encoded_filename %>/profiles/new?serial_number=<%= device_json['serial_number'] %>">Setup profile</a></li>
+        </ul>
+        <pre><%= device_json.select { |k, _| k.start_with?("profile") }.to_yaml.split("\n")[1..].join("\n") %></pre>
+        <% end %>
+        </td>
+        <td>
+          <pre><%= device_json.reject { |k, _| k == "serial_number" || k.start_with?("profile") }.to_yaml.split("\n")[1..].join("\n") %></pre>
         </td>
       </tr>
     <% end %>
   </tbody>
 </table>
+<% unless params[:serial_number].present? %>
 Results until <%= json["fetched_until"] %> are listed.
 <% if json['more_to_follow'] %>
   <a href="?cursor=<%= json['cursor'] %>">NEXT</a>
+<% end %>
 <% end %>
 <% rescue => e %>
   <% if e.respond_to?(:response) %>

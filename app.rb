@@ -863,6 +863,55 @@ class SimpleAdminConsole < Sinatra::Base
     erb :'dep/devices.html'
   end
 
+  get '/dep/:filename/devices/:serial_number' do
+    login_required
+    erb :'dep/devices.html'
+  end
+
+  get '/dep/:filename/devices/:serial_number/remove_profile' do
+    login_required
+    dep_server_token = DepServerToken.find_by!(filename: params[:filename])
+    serial_number = params[:serial_number].presence&.strip
+
+    dep = DepClient.new(dep_server_token)
+    json = dep.post('devices', { devices: [serial_number] })
+    if json['devices'][serial_number] && json['devices'][serial_number]['profile_uuid']
+      json = dep.delete('profile/devices', {
+        profile_uuid: json['devices'][serial_number]['profile_uuid'],
+        devices: [serial_number],
+      })
+    end
+    redirect "/dep/#{params[:filename]}/devices/#{serial_number}"
+  end
+
+  get '/dep/:filename/profiles/:profile_uuid' do
+    login_required
+    erb :'dep/profile.html'
+  end
+
+  post '/dep/:filename/profiles' do
+    login_required
+    dep_server_token = DepServerToken.find_by!(filename: params[:filename])
+    json = DepClient.new(dep_server_token).post('profile', YAML.load(params['payload']))
+    if json['devices'].size == 1
+      redirect "/dep/#{params[:filename]}/devices/#{json['devices'].keys.first}"
+    else
+      redirect "/dep/#{params[:filename]}/profiles/#{json['profile_uuid']}"
+    end
+  end
+
+  post '/dep/:filename/profiles/:profile_uuid/assign' do
+    login_required
+    dep_server_token = DepServerToken.find_by!(filename: params[:filename])
+    serial_numbers = params[:serial_numbers].split("\n").filter_map { |s| s.presence&.strip }
+
+    json = DepClient.new(dep_server_token).post('profile/devices', {
+      profile_uuid: params[:profile_uuid],
+      devices: serial_numbers,
+    })
+    redirect "/dep/#{params[:filename]}/profiles/#{json['profile_uuid']}"
+  end
+
   get '/ddm' do
     login_required
     erb :'ddm/index.html'
