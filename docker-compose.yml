@@ -69,6 +69,14 @@ services:
     volumes:
       - azurite-data:/azurite
 
+  # data-backup:
+  #   image: alpine:latest
+  #   command: tar cvf /data-backup/data.tar /azurite /var/lib/postgresql/data
+  #   volumes:
+  #     - azurite-data:/azurite
+  #     - pg-data:/var/lib/postgresql/data
+  #     - ./data-backup:/data-backup
+
 volumes:
   azurite-data:
     driver: local
