@@ -1,7 +1,6 @@
 class DepServerToken < ActiveRecord::Base
   def self.update_from(filename, p7m_content)
-    dep_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV['DEP_KEY_BASE64']))
-    payload = OpenSSL::PKCS7.read_smime(p7m_content).decrypt(dep_key)
+    payload = OpenSSL::PKCS7.read_smime(p7m_content).decrypt(DepKey.private_key)
 
     message = payload.match(/-----BEGIN MESSAGE-----\n(.*)\n-----END MESSAGE-----/m)[1]
     json = JSON.parse(message)

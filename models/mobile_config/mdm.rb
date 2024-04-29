@@ -48,7 +48,7 @@ module MobileConfig
     private
 
     def server_capabilities
-      if GetTokenTarget.first
+      if GetTokenTarget.last
         ['com.apple.mdm.per-user-connections', 'com.apple.mdm.token']
       else
         ['com.apple.mdm.per-user-connections']

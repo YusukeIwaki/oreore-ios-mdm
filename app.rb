@@ -124,7 +124,7 @@ class MdmServer < Sinatra::Base
 
     if plist['MessageType'] == 'GetToken'
       # https://developer.apple.com/documentation/devicemanagement/get_token
-      get_token_target = GetTokenTarget.first
+      get_token_target = GetTokenTarget.last
       if !get_token_target || plist['TokenServiceType'] != 'com.apple.maid'
         halt 400, 'Not supported yet'
       end
@@ -482,7 +482,7 @@ class MdmAddeServer < Sinatra::Base
 
     if plist['MessageType'] == 'GetToken'
       # https://developer.apple.com/documentation/devicemanagement/get_token
-      get_token_target = GetTokenTarget.first
+      get_token_target = GetTokenTarget.last
       if !get_token_target || plist['TokenServiceType'] != 'com.apple.maid'
         halt 400, 'Not supported yet'
       end
@@ -853,7 +853,7 @@ class SimpleAdminConsole < Sinatra::Base
 
   post '/dep' do
     login_required
-    dep_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV['DEP_KEY_BASE64']))
+
     dep_token_file = params[:dep_token_file]
     if dep_token_file
       DepServerToken.update_from(dep_token_file[:filename], dep_token_file[:tempfile].read)
@@ -863,17 +863,16 @@ class SimpleAdminConsole < Sinatra::Base
 
   get '/dep/pub_key.pem' do
     login_required
-    dep_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV['DEP_KEY_BASE64']))
 
     issuer = subject = OpenSSL::X509::Name.new([["CN", "oreore-mdm DEP"]])
     cert = OpenSSL::X509::Certificate.new
     cert.not_before = Time.now
     cert.not_after = Time.now + 60 * 60 * 24 * 365
-    cert.public_key = dep_key.public_key
+    cert.public_key = DepKey.public_key
     cert.serial = 0
     cert.issuer = issuer
     cert.subject = subject
-    cert.sign(dep_key, OpenSSL::Digest::SHA256.new)
+    cert.sign(DepKey.private_key, OpenSSL::Digest::SHA256.new)
 
     content_type 'application/x-pem-file'
     attachment 'pub_key.pem'

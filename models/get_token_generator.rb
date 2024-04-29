@@ -22,9 +22,7 @@ class GetTokenGenerator
       jti: jti,
     }
 
-    dep_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV['DEP_KEY_BASE64']))
-
-    token = JWT.encode(payload, dep_key, 'RS256')
+    token = JWT.encode(payload, DepKey.private_key, 'RS256')
 
     GetTokenHistory.create!(
       device_udid: @udid,

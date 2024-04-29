@@ -143,6 +143,8 @@ describe 'ADDE Checkin' do
       server_uuid: SecureRandom.uuid,
     )
 
+    allow(DepKey).to receive(:private_key).and_return(OpenSSL::PKey::RSA.new(2048))
+
     header 'User-Agent', 'MDM/1.0'
     header 'Content-Type', 'application/x-apple-aspen-mdm-checkin'
     put '/mdm-adde/checkin', authenticate_body
@@ -158,8 +160,7 @@ describe 'ADDE Checkin' do
     expect(token['service_type']).to eq('com.apple.maid')
     expect(token['iss']).to eq(get_token_target.server_uuid)
 
-    dep_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV['DEP_KEY_BASE64']))
-    verified = JWT.decode(jwt, dep_key.public_key, true, { algorithm: 'RS256' }).first
+    verified = JWT.decode(jwt, DepKey.public_key, true, { algorithm: 'RS256' }).first
     expect(verified).to eq(token)
   end
 
