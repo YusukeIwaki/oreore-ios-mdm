@@ -1,7 +1,7 @@
 <% @dep_server_token = DepServerToken.find_by!(filename: params[:filename]) %>
 
 <% if params[:profile_uuid] == 'new' %>
-<a href="/">TOP</a> &gt; <a href="/dep">Automated Device Enrollment</a> &gt; <a href="/dep/<%= @dep_server_token.url_encoded_filename %>"><%= @dep_server_token.filename %></a> &gt; Define a new profile %>
+<a href="/">TOP</a> &gt; <a href="/dep">Automated Device Enrollment</a> &gt; <a href="/dep/<%= @dep_server_token.url_encoded_filename %>"><%= @dep_server_token.filename %></a> &gt; Define a new profile
 <div class="container">
 <h2>Setup a profile</h2>
 

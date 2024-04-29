@@ -1,0 +1,19 @@
+<% @dep_server_token = DepServerToken.find_by!(filename: params[:filename]) %>
+
+<a href="/">TOP</a> &gt; <a href="/dep">Automated Device Enrollment</a> &gt; <a href="/dep/<%= @dep_server_token.url_encoded_filename %>"><%= @dep_server_token.filename %></a> &gt; Get Account Detail
+<div class="container">
+<h2>Account Detail</h2>
+
+<% begin ;
+json = DepClient.new(@dep_server_token).get('account')
+%>
+<pre><%= JSON.pretty_generate(json) %></pre>
+<% rescue => e %>
+  <% if e.respond_to?(:response) %>
+  <%= e %><br/><%= e.response.body %>
+  <% else %>
+  <%= e %>
+  <% end %>
+<% end %>
+
+</div>

@@ -32,7 +32,7 @@ module MobileConfig
         IdentityCertificateUUID: identity_cerificate.uuid,
         Topic: topic,
         ServerURL: server_url,
-        ServerCapabilities: ['com.apple.mdm.per-user-connections'],
+        ServerCapabilities: server_capabilities,
         CheckInURL: check_in_url,
         CheckOutWhenRemoved: true,
         AccessRights: 8191,
@@ -43,6 +43,16 @@ module MobileConfig
         PayloadUUID: uuid,
         PayloadVersion: 1,
       }
+    end
+
+    private
+
+    def server_capabilities
+      if GetTokenTarget.first
+        ['com.apple.mdm.per-user-connections', 'com.apple.mdm.token']
+      else
+        ['com.apple.mdm.per-user-connections']
+      end
     end
   end
 end
