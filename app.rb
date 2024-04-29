@@ -124,7 +124,7 @@ class MdmServer < Sinatra::Base
 
     if plist['MessageType'] == 'GetToken'
       # https://developer.apple.com/documentation/devicemanagement/get_token
-      get_token_target = GetTokenTarget.last
+      get_token_target = GetTokenTarget.first
       if !get_token_target || plist['TokenServiceType'] != 'com.apple.maid'
         halt 400, 'Not supported yet'
       end
@@ -292,7 +292,18 @@ class MdmByodServer < Sinatra::Base
 
     if plist['MessageType'] == 'GetToken'
       # https://developer.apple.com/documentation/devicemanagement/get_token
-      halt 400, 'Not supported yet'
+      get_token_target = GetTokenTarget.first
+      if !get_token_target || plist['TokenServiceType'] != 'com.apple.maid'
+        halt 400, 'Not supported yet'
+      end
+
+      token = GetTokenGenerator.new(get_token_target: get_token_target, udid: plist['EnrollmentID'], service_type: plist['TokenServiceType']).find_or_generate
+
+      # https://developer.apple.com/documentation/devicemanagement/gettokenresponse
+      get_token_response = { TokenData: StringIO.new(token) }
+      content_type 'application/xml'
+      body get_token_response.to_plist
+      return
     end
 
     if plist['MessageType'] == 'CheckOut' && current_access_token
@@ -482,7 +493,7 @@ class MdmAddeServer < Sinatra::Base
 
     if plist['MessageType'] == 'GetToken'
       # https://developer.apple.com/documentation/devicemanagement/get_token
-      get_token_target = GetTokenTarget.last
+      get_token_target = GetTokenTarget.first
       if !get_token_target || plist['TokenServiceType'] != 'com.apple.maid'
         halt 400, 'Not supported yet'
       end

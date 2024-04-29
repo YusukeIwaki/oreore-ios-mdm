@@ -77,6 +77,59 @@ describe 'BYOD Checkin' do
     expect(device.byod_push_endpoint.push_magic).to eq(push_magic)
   end
 
+  let(:get_token_body) {
+    <<~BODY
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+    <dict>
+      <key>EnrollmentID</key>
+      <string>#{enrollment_id}</string>
+      <key>MessageType</key>
+      <string>GetToken</string>
+      <key>TokenServiceType</key>
+      <string>com.apple.maid</string>
+    </dict>
+    </plist>
+    BODY
+  }
+
+  it 'should handle GetToken' do
+    dep_server_token = DepServerToken.create!(
+      filename: SecureRandom.hex(24),
+      consumer_key: SecureRandom.hex(24),
+      consumer_secret: SecureRandom.hex(24),
+      access_token: SecureRandom.hex(24),
+      access_secret: SecureRandom.hex(24),
+      access_token_expiry: 1.day.from_now,
+    )
+    GetTokenTarget.delete_all
+    get_token_target = GetTokenTarget.create!(
+      dep_server_token: dep_server_token,
+      server_uuid: SecureRandom.uuid,
+    )
+
+    allow(DepKey).to receive(:private_key).and_return(OpenSSL::PKey::RSA.new(2048))
+
+    header 'User-Agent', 'MDM/1.0'
+    header 'Content-Type', 'application/x-apple-aspen-mdm-checkin'
+    put '/mdm-byod/checkin', authenticate_body
+    put '/mdm-byod/checkin', token_update_body
+    put '/mdm-byod/checkin', get_token_body
+
+    expect(last_response.status).to eq(200)
+
+    response = Plist.parse_xml(last_response.body)
+    jwt = response['TokenData'].read
+
+    token = JWT.decode(jwt, nil, false).first # skip verification
+    expect(token['service_type']).to eq('com.apple.maid')
+    expect(token['iss']).to eq(get_token_target.server_uuid)
+
+    verified = JWT.decode(jwt, DepKey.public_key, true, { algorithm: 'RS256' }).first
+    expect(verified).to eq(token)
+  end
+
   it 'should deny accesses from another enrollmentId' do
     header 'User-Agent', 'MDM/1.0'
     header 'Content-Type', 'application/x-apple-aspen-mdm-checkin'

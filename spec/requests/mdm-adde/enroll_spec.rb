@@ -26,6 +26,7 @@ describe 'ADDE Enrollment' do
     account = ManagedAppleAccount.create!(email: 'test@example.com')
     token = SecureRandom.hex(24)
     account.access_tokens.create!(token: token)
+    GetTokenTarget.delete_all
 
     header 'User-Agent', 'DeviceManagementClient/1.0'
     header 'Content-Type', 'application/pkcs7-signature'
@@ -54,6 +55,7 @@ describe 'ADDE Enrollment' do
       access_secret: SecureRandom.hex(24),
       access_token_expiry: 1.day.from_now,
     )
+    GetTokenTarget.delete_all
     GetTokenTarget.create!(
       dep_server_token: dep_server_token,
       server_uuid: SecureRandom.uuid,

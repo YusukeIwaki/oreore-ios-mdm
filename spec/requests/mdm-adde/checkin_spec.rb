@@ -138,6 +138,7 @@ describe 'ADDE Checkin' do
       access_secret: SecureRandom.hex(24),
       access_token_expiry: 1.day.from_now,
     )
+    GetTokenTarget.delete_all
     get_token_target = GetTokenTarget.create!(
       dep_server_token: dep_server_token,
       server_uuid: SecureRandom.uuid,
