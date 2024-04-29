@@ -39,7 +39,7 @@ services:
     working_dir: /app
     ports:
       - 4000:4000
-    command: sh -c 'gem install sinatra webrick && ruby testaccount.rb -p 4000'
+    command: sh -c 'gem install rackup sinatra webrick && ruby testaccount.rb -p 4000'
 
   postgres:
     image: postgres:15-alpine

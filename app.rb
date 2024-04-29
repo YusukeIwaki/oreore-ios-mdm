@@ -122,6 +122,22 @@ class MdmServer < Sinatra::Base
       end
     end
 
+    if plist['MessageType'] == 'GetToken'
+      # https://developer.apple.com/documentation/devicemanagement/get_token
+      get_token_target = GetTokenTarget.first
+      if !get_token_target || plist['TokenServiceType'] != 'com.apple.maid'
+        halt 400, 'Not supported yet'
+      end
+
+      token = GetTokenGenerator.new(get_token_target: get_token_target, device_identifier: plist['UDID'], service_type: plist['TokenServiceType']).find_or_generate
+
+      # https://developer.apple.com/documentation/devicemanagement/gettokenresponse
+      get_token_response = { TokenData: StringIO.new(token) }
+      content_type 'application/xml'
+      body get_token_response.to_plist
+      return
+    end
+
     if plist.delete('Topic') != PushCertificate.from_env.topic
       halt 403, 'Topic mismatch'
     end
@@ -276,7 +292,18 @@ class MdmByodServer < Sinatra::Base
 
     if plist['MessageType'] == 'GetToken'
       # https://developer.apple.com/documentation/devicemanagement/get_token
-      halt 400, 'Not supported yet'
+      get_token_target = GetTokenTarget.first
+      if !get_token_target || plist['TokenServiceType'] != 'com.apple.maid'
+        halt 400, 'Not supported yet'
+      end
+
+      token = GetTokenGenerator.new(get_token_target: get_token_target, device_identifier: plist['EnrollmentID'], service_type: plist['TokenServiceType']).find_or_generate
+
+      # https://developer.apple.com/documentation/devicemanagement/gettokenresponse
+      get_token_response = { TokenData: StringIO.new(token) }
+      content_type 'application/xml'
+      body get_token_response.to_plist
+      return
     end
 
     if plist['MessageType'] == 'CheckOut' && current_access_token
@@ -466,7 +493,18 @@ class MdmAddeServer < Sinatra::Base
 
     if plist['MessageType'] == 'GetToken'
       # https://developer.apple.com/documentation/devicemanagement/get_token
-      halt 400, 'Not supported yet'
+      get_token_target = GetTokenTarget.first
+      if !get_token_target || plist['TokenServiceType'] != 'com.apple.maid'
+        halt 400, 'Not supported yet'
+      end
+
+      token = GetTokenGenerator.new(get_token_target: get_token_target, device_identifier: plist['UDID'], service_type: plist['TokenServiceType']).find_or_generate
+
+      # https://developer.apple.com/documentation/devicemanagement/gettokenresponse
+      get_token_response = { TokenData: StringIO.new(token) }
+      content_type 'application/xml'
+      body get_token_response.to_plist
+      return
     end
 
     if plist['MessageType'] == 'CheckOut' && current_access_token
@@ -826,7 +864,7 @@ class SimpleAdminConsole < Sinatra::Base
 
   post '/dep' do
     login_required
-    dep_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV['DEP_KEY_BASE64']))
+
     dep_token_file = params[:dep_token_file]
     if dep_token_file
       DepServerToken.update_from(dep_token_file[:filename], dep_token_file[:tempfile].read)
@@ -836,17 +874,16 @@ class SimpleAdminConsole < Sinatra::Base
 
   get '/dep/pub_key.pem' do
     login_required
-    dep_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV['DEP_KEY_BASE64']))
 
     issuer = subject = OpenSSL::X509::Name.new([["CN", "oreore-mdm DEP"]])
     cert = OpenSSL::X509::Certificate.new
     cert.not_before = Time.now
     cert.not_after = Time.now + 60 * 60 * 24 * 365
-    cert.public_key = dep_key.public_key
+    cert.public_key = DepKey.public_key
     cert.serial = 0
     cert.issuer = issuer
     cert.subject = subject
-    cert.sign(dep_key, OpenSSL::Digest::SHA256.new)
+    cert.sign(DepKey.private_key, OpenSSL::Digest::SHA256.new)
 
     content_type 'application/x-pem-file'
     attachment 'pub_key.pem'
@@ -856,6 +893,11 @@ class SimpleAdminConsole < Sinatra::Base
   get '/dep/:filename' do
     login_required
     erb :'dep/show.html'
+  end
+
+  get '/dep/:filename/account' do
+    login_required
+    erb :'dep/account.html'
   end
 
   get '/dep/:filename/devices' do
