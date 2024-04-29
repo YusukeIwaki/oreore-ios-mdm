@@ -129,7 +129,7 @@ class MdmServer < Sinatra::Base
         halt 400, 'Not supported yet'
       end
 
-      token = GetTokenGenerator.new(get_token_target: get_token_target, udid: plist['UDID'], service_type: plist['TokenServiceType']).find_or_generate
+      token = GetTokenGenerator.new(get_token_target: get_token_target, device_identifier: plist['UDID'], service_type: plist['TokenServiceType']).find_or_generate
 
       # https://developer.apple.com/documentation/devicemanagement/gettokenresponse
       get_token_response = { TokenData: StringIO.new(token) }
@@ -297,7 +297,7 @@ class MdmByodServer < Sinatra::Base
         halt 400, 'Not supported yet'
       end
 
-      token = GetTokenGenerator.new(get_token_target: get_token_target, udid: plist['EnrollmentID'], service_type: plist['TokenServiceType']).find_or_generate
+      token = GetTokenGenerator.new(get_token_target: get_token_target, device_identifier: plist['EnrollmentID'], service_type: plist['TokenServiceType']).find_or_generate
 
       # https://developer.apple.com/documentation/devicemanagement/gettokenresponse
       get_token_response = { TokenData: StringIO.new(token) }
@@ -498,7 +498,7 @@ class MdmAddeServer < Sinatra::Base
         halt 400, 'Not supported yet'
       end
 
-      token = GetTokenGenerator.new(get_token_target: get_token_target, udid: plist['UDID'], service_type: plist['TokenServiceType']).find_or_generate
+      token = GetTokenGenerator.new(get_token_target: get_token_target, device_identifier: plist['UDID'], service_type: plist['TokenServiceType']).find_or_generate
 
       # https://developer.apple.com/documentation/devicemanagement/gettokenresponse
       get_token_response = { TokenData: StringIO.new(token) }

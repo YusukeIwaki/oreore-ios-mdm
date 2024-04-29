@@ -145,7 +145,7 @@ create_table 'get_token_histories', force: :cascade do |t|
   t.datetime 'iat', null: false
   t.string 'jti', null: false
   t.string 'service_type', null: false
-  t.string 'device_udid', null: false
+  t.string 'device_identifier', null: false
   t.text 'jwt'
 end
 
@@ -156,8 +156,8 @@ add_index 'get_token_histories',
   using: :btree
 
 add_index 'get_token_histories',
-  ['device_udid', 'service_type', 'iat'],
-  name: 'index_get_token_histories_device_udid_service_type_iat',
+  ['device_identifier', 'service_type', 'iat'],
+  name: 'index_get_token_histories_device_service_iat',
   using: :btree
 
 create_table 'ddm_device_groups', force: :cascade do |t|
