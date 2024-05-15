@@ -22,6 +22,9 @@ class PushClient
     return @apnotic_connection if @apnotic_connection
 
     pkcs12, password = PushCertificate.from_env._top_secrets
+    if pkcs12.certificate.not_after < Time.current
+      raise "Push certificate expired"
+    end
     @apnotic_connection = Apnotic::Connection.new(
       cert_path: StringIO.new(pkcs12.to_der),
       cert_pass: password,
