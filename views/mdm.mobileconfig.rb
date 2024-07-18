@@ -17,7 +17,7 @@ payload = MobileConfig.new(
   contents: [
     identity_cerificate,
     MobileConfig::Mdm.new(
-      uuid: ENV['MDM_MOBILECONFIG_PAYLOAD_UUID'],
+      uuid: "#{ENV['MDM_MOBILECONFIG_PAYLOAD_UUID']}.mdm",
       topic: topic,
       identity_cerificate: identity_cerificate,
     ),

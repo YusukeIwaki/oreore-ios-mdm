@@ -17,6 +17,7 @@ payload = MobileConfig.new(
   contents: [
     identity_cerificate,
     MobileConfig::MdmByod.new(
+      uuid: "#{ENV['MDM_MOBILECONFIG_PAYLOAD_UUID']}.mdm",
       topic: topic,
       identity_cerificate: identity_cerificate,
       assigned_managed_apple_id: assigned_managed_apple_id,
