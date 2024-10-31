@@ -34,7 +34,7 @@ No commands.
 <h2>Command History</h2>
 <% if @command_histories.present? %>
 <div class="list-group">
-<% @command_histories.last(10).each do |command_history| %>
+<% @command_histories.last(100).each do |command_history| %>
   <a href="/commands/<%= command_history.command_uuid %>" class="list-group-item list-group-item-action">
   <%= command_history.request_type %> - <%= command_history.command_uuid %> (<%= command_history.created_at %>)
   </a>
