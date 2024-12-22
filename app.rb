@@ -900,6 +900,11 @@ class SimpleAdminConsole < Sinatra::Base
     erb :'dep/account.html'
   end
 
+  get '/dep/:filename/os_beta_enrollment_tokens' do
+    login_required
+    erb :'dep/os_beta_enrollment_tokens.html'
+  end
+
   get '/dep/:filename/devices' do
     login_required
     erb :'dep/devices.html'

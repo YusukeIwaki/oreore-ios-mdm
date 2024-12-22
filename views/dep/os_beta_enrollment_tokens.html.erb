@@ -1,0 +1,29 @@
+<% @dep_server_token = DepServerToken.find_by!(filename: params[:filename]) %>
+
+<a href="/">TOP</a> &gt; <a href="/dep">Automated Device Enrollment</a> &gt; <a href="/dep/<%= @dep_server_token.url_encoded_filename %>"><%= @dep_server_token.filename %></a> &gt; OS Beta Enrollment Tokens
+<div class="container">
+<h2>OS Beta Enrollment Tokens</h2>
+
+<%
+  json = DepClient.new(@dep_server_token).get('os-beta-enrollment/tokens')
+  json_tokens = json['betaEnrollmentTokens']
+%>
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">title</th>
+      <th scope="col">os</th>
+      <th scope="col">token</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% json_tokens.each do |token_json| %>
+      <tr>
+        <th scope="row"><%= token_json['title'] %></th>
+        <td><%= token_json['os'] %></td>
+        <td><%= token_json['token'] %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</div>
