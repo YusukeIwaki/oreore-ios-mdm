@@ -1,0 +1,18 @@
+<% @dep_server_token = DepServerToken.find_by!(filename: params[:filename]) %>
+
+<a href="/">TOP</a> &gt; <a href="/dep">Automated Device Enrollment</a> &gt; <a href="/dep/<%= @dep_server_token.url_encoded_filename %>"><%= @dep_server_token.filename %></a> &gt; Account-driven Enrollment Profile
+<div class="container">
+<h2>Account-driven Enrollment Profile</h2>
+
+<%
+  json = DepClient.new(@dep_server_token).get('account-driven-enrollment/profile') rescue {}
+%>
+
+<form action="/dep/<%= @dep_server_token.url_encoded_filename %>/account_driven_enrollment_profile" method="post" enctype="multipart/form-data" class="p-3">
+  <div class="mb-3">
+    <label for="input_url" class="form-label">Account-driven Enrollment Profile <% if json['last_updated_timestamp'] %><b>(last_updated_timestamp: <%= json['last_updated_timestamp'] %>)</b><% end %></label>
+    <input id="input_url" name="url" value="<%= json['mdm_service_discovery_url'] %>" type="text" class="form-control" required>
+    <p class="form-text">Specify "<%= ENV['MDM_SERVER_BASE_URL'] %>/mdm_service_discovery" to use this server.</p>
+  </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</div>

@@ -45,6 +45,21 @@ class MdmServer < Sinatra::Base
     end
   end
 
+  # Specify {mdm_service_discovery_url: 'https://your-domain.example.com/mdm_service_discovery'} into POST /account-driven-enrollment/profile (Account-driven Enrollment Profile)
+  get '/mdm_service_discovery' do
+    email = params['user-identifier']
+    device_family = params['model-family']
+
+    App._logger.info "MDM service discovery request with email=#{email}, device_family=#{device_family}"
+
+    headers('Content-Type' => 'application/json')
+    body({
+      Servers: [
+        { Version: 'mdm-byod', BaseURL: "#{ENV['MDM_SERVER_BASE_URL']}/mdm-byod/enroll" },
+      ]
+    }.to_json)
+  end
+
   get '/MDMServiceConfig' do # AppleConfigurator: add server
     verbose_print_request
 
@@ -903,6 +918,25 @@ class SimpleAdminConsole < Sinatra::Base
   get '/dep/:filename/os_beta_enrollment_tokens' do
     login_required
     erb :'dep/os_beta_enrollment_tokens.html'
+  end
+
+  get '/dep/:filename/account_driven_enrollment_profile' do
+    login_required
+    erb :'dep/account_driven_enrollment_profile.html'
+  end
+
+  post '/dep/:filename/account_driven_enrollment_profile' do
+    login_required
+    dep_server_token = DepServerToken.find_by!(filename: params[:filename])
+    if params[:url] == '' # not nil. just ""
+      DepClient.new(dep_server_token).delete('account-driven-enrollment/profile')
+    elsif !params[:url].nil?
+      payload = {
+        mdm_service_discovery_url: params[:url],
+      }
+      DepClient.new(dep_server_token).post('account-driven-enrollment/profile', payload)
+    end
+    redirect "/dep/#{params[:filename]}/account_driven_enrollment_profile"
   end
 
   get '/dep/:filename/devices' do
