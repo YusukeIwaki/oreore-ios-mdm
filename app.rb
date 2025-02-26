@@ -687,7 +687,7 @@ class SimpleAdminConsole < Sinatra::Base
     end
   end
 
-  post '/auth/developer/callback' do
+  get '/auth/developer/callback' do
     url = session.delete(:return_to)
     return_url =
       if url.blank? || url.include?('/auth/')
