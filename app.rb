@@ -106,7 +106,14 @@ class MdmServer < Sinatra::Base
 
   get '/asset_files/*rest' do
     verbose_print_request
-    AssetFileUploader.download_response(request.env)
+    AssetFileUploader.download_response(request.env).tap do |status, headers, body|
+      case headers['Content-Disposition']
+      when /^inline; filename=\".*\.plist\";/
+        headers.delete('Content-Disposition')
+        headers.delete('ETag')
+        headers['Content-Type'] = 'application/plist'
+      end
+    end
   end
 
   put '/mdm/checkin' do
