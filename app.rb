@@ -70,7 +70,13 @@ class MdmServer < Sinatra::Base
     }.to_json
   end
 
-  post '/mdm/dep_enroll' do
+  get '/mdm/dep_enroll' do # for macOS
+    verbose_print_request
+    content_type 'application/x-apple-aspen-config'
+    rb :'mdm.mobileconfig'
+  end
+
+  post '/mdm/dep_enroll' do # for iOS/iPadOS
     verbose_print_request
     content_type 'application/x-apple-aspen-config'
     rb :'mdm.mobileconfig'
@@ -91,6 +97,19 @@ class MdmServer < Sinatra::Base
     verbose_print_request
     content_type 'application/x-apple-aspen-config'
     rb :'mdm.mobileconfig'
+  end
+
+  get '/mdm/service_discovery' do
+    verbose_print_request
+    content_type 'application/json'
+    {
+      Servers: [
+        {
+          Version: 'mdm-byod',
+          BaseURL: "#{ENV['MDM_SERVER_BASE_URL']}/mdm-byod/enroll",
+        }
+      ]
+    }.to_json
   end
 
   get '/mdm.mobileconfig' do
