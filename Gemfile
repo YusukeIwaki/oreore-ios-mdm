@@ -2,7 +2,7 @@
 
 source "https://rubygems.org"
 
-ruby '~> 3.0.2'
+ruby '~> 3.4.0'
 
 gem 'apnotic'
 gem 'azure-storage-blob'
@@ -16,6 +16,7 @@ gem 'plist'
 gem 'pry'
 gem 'puma'
 gem 'rack'
+gem 'rackup'
 gem 'ridgepole'
 gem 'rqrcode'
 gem 'shrine'

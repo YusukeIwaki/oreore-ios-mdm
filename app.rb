@@ -1,6 +1,8 @@
 require 'bundler'
 Bundler.require :default, (ENV['RACK_ENV'] || :development).to_sym
 
+OpenSSL::Provider.load("legacy")
+
 require_relative './config/active_record'
 require_relative './config/shrine'
 require_relative './config/zeitwerk'
@@ -295,6 +297,20 @@ class MdmByodServer < Sinatra::Base
 
       halt 401, { 'WWW-Authenticate' => "Bearer #{realm}" }, 'Unauthorized'
     end
+
+    def verbose_print_request
+      lines = []
+      request.env.each do |key, value|
+        if key.start_with?('HTTP_')
+          lines << "#{key}: #{value}"
+        end
+      end
+      request.body.rewind
+      lines << request.body.read
+      request.body.rewind
+
+      App._logger.info(lines.join("\n"))
+    end
   end
 
   # https://developer.apple.com/documentation/devicemanagement/user_enrollment/onboarding_users_with_account_sign-in/implementing_the_simple_authentication_user-enrollment_flow
@@ -397,6 +413,7 @@ class MdmByodServer < Sinatra::Base
 
   put '/mdm-byod/command' do
     authorized_account_required
+    verbose_print_request
 
     plist = Plist.parse_xml(request.body.read, marshal: false)
     enrollment_id = plist['EnrollmentID']
@@ -496,6 +513,20 @@ class MdmAddeServer < Sinatra::Base
       }.map { |k, v| "#{k}=\"#{v}\"" }.join(', ')
 
       halt 401, { 'WWW-Authenticate' => "Bearer #{realm}" }, 'Unauthorized'
+    end
+
+    def verbose_print_request
+      lines = []
+      request.env.each do |key, value|
+        if key.start_with?('HTTP_')
+          lines << "#{key}: #{value}"
+        end
+      end
+      request.body.rewind
+      lines << request.body.read
+      request.body.rewind
+
+      App._logger.info(lines.join("\n"))
     end
   end
 
@@ -621,6 +652,7 @@ class MdmAddeServer < Sinatra::Base
 
   put '/mdm-adde/command' do
     authorized_account_required
+    verbose_print_request
 
     plist = Plist.parse_xml(request.body.read, marshal: false)
     udid = plist['UDID']
