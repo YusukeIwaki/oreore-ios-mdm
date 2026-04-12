@@ -1,11 +1,18 @@
-require_relative '../lib/shrine_storage_azure_blob'
+require 'shrine/storage/s3'
 require 'shrine/storage/file_system'
 
-container_name = ENV['AZURE_STORAGE_CONTAINER_NAME']
+s3_options = {
+  bucket: ENV['S3_BUCKET'],
+  region: ENV.fetch('S3_REGION', 'us-east-1'),
+  access_key_id: ENV['S3_ACCESS_KEY_ID'],
+  secret_access_key: ENV['S3_SECRET_ACCESS_KEY'],
+}
+s3_options[:endpoint] = ENV['S3_ENDPOINT'] if ENV['S3_ENDPOINT']
+s3_options[:force_path_style] = true if ENV['S3_ENDPOINT']
 
 Shrine.storages = {
   cache: Shrine::Storage::FileSystem.new("public", prefix: "uploads/cache"),
-  store: ShrineStorageAzureBlob.new(container_name: container_name)
+  store: Shrine::Storage::S3.new(**s3_options),
 }
 
 Shrine.plugin :activerecord

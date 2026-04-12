@@ -4,7 +4,8 @@ FROM ruby:3.4-alpine
 RUN apk add --update --no-cache \
     build-base \
     postgresql-dev \
-    tzdata
+    tzdata \
+    yaml-dev
 
 RUN mkdir /app
 WORKDIR /app

@@ -5,7 +5,8 @@ source "https://rubygems.org"
 ruby '~> 3.4.0'
 
 gem 'apnotic'
-gem 'azure-storage-blob'
+gem 'aws-sdk-s3'
+gem 'rexml'
 gem 'data_class_factory'
 gem 'faraday'
 gem 'faraday-retry'
@@ -25,7 +26,7 @@ gem 'sinatra-activerecord'
 gem 'zeitwerk'
 
 group :development, :test do
-  gem 'pry-byebug'
+  gem 'debug'
 end
 
 group :test do

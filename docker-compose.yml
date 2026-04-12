@@ -1,15 +1,17 @@
-version: '3'
 services:
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     depends_on:
-      - azurite
+      - floci
       - postgres
     environment:
-      - AZURE_STORAGE_ACCOUNT=devstoreaccount1
-      - AZURE_STORAGE_ACCESS_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
-      - AZURE_STORAGE_BLOB_HOST=http://azurite:10000/devstoreaccount1
-      - AZURE_STORAGE_CONTAINER_NAME=oreore-ios-mdm
+      - S3_ENDPOINT=http://floci:4566
+      - S3_BUCKET=oreore-ios-mdm
+      - S3_REGION=us-east-1
+      - S3_ACCESS_KEY_ID=test
+      - S3_SECRET_ACCESS_KEY=test
       - DATABASE_URL=postgres://pguser:pgpassword@postgres:5432/pguser
       - GOOGLE_CLIENT_ID
       - GOOGLE_CLIENT_SECRET
@@ -50,34 +52,18 @@ services:
       POSTGRES_PASSWORD: pgpassword
       POSTGRES_DB: pguser
 
-  azure-cli:
-    image: mcr.microsoft.com/azure-cli
-    environment:
-      AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
-    depends_on:
-      - azurite
-    tty: true
-    stdin_open: true
-    working_dir: /scripts
-    command: /bin/bash
-
-  azurite:
-    image: mcr.microsoft.com/azure-storage/azurite
-    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 -l /azurite
-    working_dir: /azurite
+  floci:
+    image: hectorvent/floci:latest
+    ports:
+      - "4566:4566"
     volumes:
-      - azurite-data:/azurite
-
-  # data-backup:
-  #   image: alpine:latest
-  #   command: tar cvf /data-backup/data.tar /azurite /var/lib/postgresql/data
-  #   volumes:
-  #     - azurite-data:/azurite
-  #     - pg-data:/var/lib/postgresql/data
-  #     - ./data-backup:/data-backup
+      - floci-data:/app/data
+    environment:
+      FLOCI_STORAGE_MODE: persistent
+      FLOCI_STORAGE_PERSISTENT_PATH: /app/data
 
 volumes:
-  azurite-data:
+  floci-data:
     driver: local
   bundle-data:
     driver: local

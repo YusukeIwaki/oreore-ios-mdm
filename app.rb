@@ -1,7 +1,8 @@
 require 'bundler'
 Bundler.require :default, (ENV['RACK_ENV'] || :development).to_sym
 
-OpenSSL::Provider.load("legacy")
+require 'openssl'
+OpenSSL::Provider.load("legacy") if defined?(OpenSSL::Provider)
 
 require_relative './config/active_record'
 require_relative './config/shrine'
@@ -31,6 +32,7 @@ class FixContentTypeMiddleware
 end
 
 class MdmServer < Sinatra::Base
+  set :host_authorization, { permitted_hosts: [] }
   helpers do
     def verbose_print_request
       lines = []
@@ -261,6 +263,7 @@ end
 
 
 class MdmByodServer < Sinatra::Base
+  set :host_authorization, { permitted_hosts: [] }
   helpers do
     # Get access_token from Authorization Header. The result access token can be expired.
     def current_access_token
@@ -478,6 +481,7 @@ class MdmByodServer < Sinatra::Base
 end
 
 class MdmAddeServer < Sinatra::Base
+  set :host_authorization, { permitted_hosts: [] }
   helpers do
     # Get access_token from Authorization Header. The result access token can be expired.
     def current_access_token
@@ -717,6 +721,7 @@ class MdmAddeServer < Sinatra::Base
 end
 
 class SimpleAdminConsole < Sinatra::Base
+  set :host_authorization, { permitted_hosts: [] }
   enable :sessions
   if ENV['GOOGLE_CLIENT_ID'].present?
     use OmniAuth::Builder do
@@ -1276,6 +1281,8 @@ class App < Sinatra::Base
   def self._logger
     @_logger ||= Logger.new($stdout)
   end
+
+  set :host_authorization, { permitted_hosts: [] }
   use FixContentTypeMiddleware
 
   use MdmServer

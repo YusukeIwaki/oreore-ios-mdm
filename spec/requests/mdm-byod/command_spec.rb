@@ -46,6 +46,7 @@ describe 'BYOD command' do
     post '/mdm-byod/authenticate', URI.encode_www_form({ email: 'test@example.com', password: 'password!' })
     new_token = last_response['Location'].match(/apple-remotemanagement-user-login:\/\/authentication-results\?access-token=(.+)/)[1]
 
+    header 'Content-Type', 'application/x-apple-aspen-mdm'
     header 'Authorization', "Bearer #{new_token}"
     put '/mdm-byod/command', command_body
     expect(last_response.status).to eq(200)
