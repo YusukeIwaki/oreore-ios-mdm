@@ -24,6 +24,12 @@
   </div>
   <% end %>
 
+  <% unless @public_asset_detail.new_record? %>
+  <form action="/ddm/public_assets/<%= @public_asset.id %>/details/<%= @public_asset_detail.id %>/delete" method="post" onsubmit="return confirm('Are you sure you want to delete this detail?')">
+    <button type="submit" class="btn btn-danger mt-2">Delete</button>
+  </form>
+  <% end %>
+
   <% if @public_asset_detail.new_record? %>
   <h3>New target</h3>
   <% else %>

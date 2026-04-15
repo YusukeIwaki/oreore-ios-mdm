@@ -43,6 +43,14 @@ Following environment variables should be configured before launching MDM server
 $ bundle exec ridgepole -c $DATABASE_URL --apply
 ```
 
+## Running tests
+
+Tests require PostgreSQL and floci (S3-compatible storage) provided by Docker Compose.
+
+```bash
+docker compose exec web bundle exec rspec
+```
+
 ## Launch server
 
 Just hit `bundle exec rackup -p 3000`

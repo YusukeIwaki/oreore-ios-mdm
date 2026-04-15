@@ -38,6 +38,14 @@ Sinatra (Ruby) ベースの iOS MDM サーバー。PostgreSQL + ActiveRecord (si
 3. `railway up` でデプロイ
 4. 必要に応じて `railway run ridgepole --apply -f Schemafile -c '{"adapter":"postgresql","url":"$DATABASE_URL"}'` でスキーマ適用
 
+## テスト
+
+テストは Docker Compose 経由で実行する。PostgreSQL と floci (S3互換ストレージ) が必要なため、ローカルで直接 `bundle exec rspec` を実行するとDB接続エラーになる。
+
+```bash
+docker compose exec web bundle exec rspec
+```
+
 ## Heroku (旧デプロイ先)
 
 - App: `oreore-ios-mdm`

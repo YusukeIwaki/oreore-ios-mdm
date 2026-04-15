@@ -23,6 +23,9 @@
 <div class="card p-3">
   <pre><%= ERB::Util.h(@wifi_profile.asset_file.read) %></pre>
 </div>
+<form action="/rts/wifi_profiles/<%= @wifi_profile.id %>/delete" method="post" onsubmit="return confirm('Are you sure you want to delete this Wi-Fi profile?')">
+  <button type="submit" class="btn btn-danger mt-2">Delete</button>
+</form>
 <% end %>
 
 <% if @wifi_profile.new_record? %>

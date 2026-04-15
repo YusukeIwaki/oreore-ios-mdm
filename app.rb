@@ -890,6 +890,13 @@ class SimpleAdminConsole < Sinatra::Base
     redirect '/rts/wifi_profiles'
   end
 
+  post '/rts/wifi_profiles/:id/delete' do
+    login_required
+    wifi_profile = Rts::WifiProfile.find(params[:id])
+    wifi_profile.destroy!
+    redirect '/rts/wifi_profiles'
+  end
+
   get '/vpp' do
     login_required
     erb :'vpp/index.html'
@@ -1272,6 +1279,16 @@ class SimpleAdminConsole < Sinatra::Base
     public_asset = Ddm::PublicAsset.find(params[:id])
     detail = public_asset.details.find_or_initialize_by(target_identifier: params[:target_identifier].presence)
     detail.update!(asset_file: params[:asset_file])
+
+    redirect "/ddm/public_assets/#{public_asset.id}/details"
+  end
+
+  post '/ddm/public_assets/:id/details/:detail_id/delete' do
+    login_required
+
+    public_asset = Ddm::PublicAsset.find(params[:id])
+    detail = public_asset.details.find(params[:detail_id])
+    detail.destroy!
 
     redirect "/ddm/public_assets/#{public_asset.id}/details"
   end
