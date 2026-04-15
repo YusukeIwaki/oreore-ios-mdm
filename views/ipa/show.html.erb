@@ -4,18 +4,11 @@
 
 <p><%= @ipa.bundle_identifier %></p>
 
+<p>Manifest URL: <code><%= "#{ENV['MDM_SERVER_BASE_URL']}/ipa/#{@ipa.url_encoded_filename}/manifest" %></code></p>
+
 <h3>Manifest</h3>
 <div class="card p-3 m-3">
 <pre class="m-0"><%= ERB::Util.h(@ipa.metadata.as_manifest) %></pre>
-</div>
-
-<h3>InstallApplication command</h3>
-<div class="card p-3 m-3">
-<%
-  manifest_url = "#{ENV['MDM_SERVER_BASE_URL']}/ipa/#{@ipa.url_encoded_filename}/manifest"
-  install_command = Command::InstallApplication.new(manifest_url: manifest_url)
-%>
-<pre class="m-0"><%= ERB::Util.h(install_command.request_payload.to_plist) %></pre>
 </div>
 
 <form action="/ipa/<%= @ipa.id %>/delete" method="post" onsubmit="return confirm('Are you sure you want to delete this IPA file?')">
