@@ -127,6 +127,11 @@ class MdmServer < Sinatra::Base
     rb :'mdm.mobileconfig'
   end
 
+  get '/ipa/:filename/manifest' do
+    @ipa = IpaFile.find_by!(filename: params[:filename])
+    @ipa.metadata.as_manifest
+  end
+
   get '/asset_files/*rest' do
     verbose_print_request
     AssetFileUploader.download_response(request.env).tap do |status, headers, body|
@@ -940,6 +945,37 @@ class SimpleAdminConsole < Sinatra::Base
     license.associate(vpp_content_token)
 
     redirect "/vpp/#{vpp_content_token.url_encoded_filename}/#{adam_id}"
+  end
+
+  get '/ipa' do
+    login_required
+    erb :'ipa/index.html'
+  end
+
+  post '/ipa' do
+    login_required
+    asset_file = params[:asset_file]
+    if asset_file
+      IpaFile.create!(
+        bundle_identifier: params[:bundle_identifier],
+        filename: asset_file[:filename],
+        asset_file: asset_file,
+      )
+    end
+    redirect '/ipa'
+  end
+
+  get '/ipa/:filename' do
+    login_required
+    @ipa = IpaFile.find_by!(filename: params[:filename])
+    erb :'ipa/show.html'
+  end
+
+  post '/ipa/:id/delete' do
+    login_required
+    ipa_file = IpaFile.find(params[:id])
+    ipa_file.destroy!
+    redirect '/ipa'
   end
 
   get '/dep' do

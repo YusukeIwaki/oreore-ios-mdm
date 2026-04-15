@@ -118,6 +118,20 @@ add_index 'vpp_content_tokens',
   unique: true,
   using: :btree
 
+create_table 'ipa_files', force: :cascade do |t|
+  t.string 'filename', null: false
+  t.string 'bundle_identifier', null: false
+  t.text 'asset_file_data', null: false
+  t.datetime 'created_at', null: false
+  t.datetime 'updated_at', null: false
+end
+
+add_index 'ipa_files',
+  ['filename'],
+  name: 'index_ipa_files_filename',
+  unique: true,
+  using: :btree
+
 create_table 'dep_server_tokens', force: :cascade do |t|
   t.string 'filename', null: false
   t.text 'raw_payload'

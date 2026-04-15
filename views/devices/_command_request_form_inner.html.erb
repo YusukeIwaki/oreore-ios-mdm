@@ -13,6 +13,7 @@
       ['InstalledApplicationList', 'InstalledApplicationList'],
       ['ProfileList', 'ProfileList'],
       ['InstallProfile', 'InstallProfile'],
+      ['InstallApplication', 'InstallApplication'],
       ['RemoveProfile', 'RemoveProfile'],
       ['EnableLostMode', 'EnableLostMode'],
       ['DeviceLocation', 'DeviceLocation'],
@@ -23,7 +24,29 @@
     <option value="<%= value %>" <%= value == selected_command ? 'selected' : '' %>><%= label %></option>
   <% end %>
   </select>
-  <% case selected_command ; when 'EraseDevice' %>
+  <% case selected_command ; when 'InstallApplication' %>
+  <div class="list-group mb-3">
+    <b>IPA file</b>
+    <%
+      selected_ipa =
+        if params[:ipa_file_id].present?
+          IpaFile.find(params[:ipa_file_id])
+        else
+          IpaFile.order(:filename).first
+        end
+    %>
+    <% IpaFile.order(:filename).find_each do |ipa| %>
+    <a href="<%= my_endpoint_path %>?command=<%= selected_command %>&ipa_file_id=<%= ipa.id %>"
+      <% if ipa == selected_ipa %>
+      class="list-group-item list-group-item-action active" aria-current="true">
+      <% else %>
+      class="list-group-item list-group-item-action">
+      <% end %>
+    <%= ipa.filename %>
+    </a>
+    <% end %>
+  </div>
+  <% when 'EraseDevice' %>
   <div class="list-group mb-3">
     <b>WiFiProfileData</b>
     <%
@@ -58,6 +81,14 @@ when 'DeclarativeManagement'
   declaration = DeclarativeManagement::Declaration.new(declarativemanagement_device_identifier)
   command = Command::DeclarativeManagement.new(tokens: declaration.tokens)
   command.request_payload.to_plist.strip
+when 'InstallApplication'
+  if selected_ipa
+    manifest_url = "#{ENV['MDM_SERVER_BASE_URL']}/ipa/#{selected_ipa.url_encoded_filename}/manifest"
+    command = Command::InstallApplication.new(manifest_url: manifest_url)
+    command.request_payload.to_plist.strip
+  else
+    ''
+  end
 when 'EraseDevice'
   if rts_wifi_profile
     command = Command::EraseDevice.new(

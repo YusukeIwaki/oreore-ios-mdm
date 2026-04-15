@@ -1,0 +1,24 @@
+<a href="/">TOP</a> &gt; IPA
+
+<div class="container">
+<h2>IPA files</h2>
+<div class="list-group">
+<% IpaFile.find_each do |ipa| %>
+  <a href="/ipa/<%= ipa.url_encoded_filename %>" class="list-group-item list-group-item-action"><%= ipa.filename %></a>
+<% end %>
+</div>
+
+<h3>Add a IPA file</h3>
+<form class="card p-3" action="/ipa" method="post" enctype="multipart/form-data">
+  <div class="mb-3">
+    <label for="input_bundle_identifier" class="form-label">Bundle identifier</label>
+    <input type="text" class="form-control" id="input_bundle_identifier" name="bundle_identifier" required>
+  </div>
+  <div class="mb-3">
+    <label for="form_asset_file" class="form-label">File</label>
+    <input id="form_asset_file" name="asset_file" type="file" class="form-control" required>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+</div>
