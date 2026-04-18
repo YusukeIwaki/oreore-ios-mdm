@@ -71,8 +71,13 @@
   <% end %>
 
   <div class="mb-3">
-    <label for="input_payload" class="form-label">Payload</label>
-    <textarea class="form-control" id="input_payload" name="payload" rows="10"><%=
+    <label for="input_payload" class="form-label">
+      Payload
+      <% if selected_command == 'InstallProfile' %>
+      <small class="text-muted">(.mobileconfigファイルをドロップするとペイロードを再生成します)</small>
+      <% end %>
+    </label>
+    <textarea class="form-control" id="input_payload" name="payload" rows="10"<%= ' data-install-profile-drop="true"' if selected_command == 'InstallProfile' %>><%=
 case selected_command
 when 'DeclarativeManagement'
   device = MdmDevice.find_by!(udid: params[:udid])
@@ -112,4 +117,49 @@ else
 end
     %></textarea>
   </div>
+  <% if selected_command == 'InstallProfile' %>
+  <script>
+    (function() {
+      var textarea = document.querySelector('textarea[data-install-profile-drop="true"]');
+      if (!textarea) return;
+
+      textarea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        textarea.classList.add('border-primary');
+      });
+
+      textarea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        textarea.classList.remove('border-primary');
+      });
+
+      textarea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        textarea.classList.remove('border-primary');
+
+        var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!file) return;
+
+        var formData = new FormData();
+        formData.append('mobileconfig_file', file);
+
+        fetch('/install_profile_payload', {
+          method: 'POST',
+          body: formData,
+        }).then(function(response) {
+          if (!response.ok) throw new Error('Failed to build payload: ' + response.status);
+          return response.text();
+        }).then(function(text) {
+          textarea.value = text;
+        }).catch(function(err) {
+          console.error(err);
+          alert('Failed to process mobileconfig file: ' + err.message);
+        });
+      });
+    })();
+  </script>
+  <% end %>
 </turbo-frame>

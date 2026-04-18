@@ -843,6 +843,17 @@ class SimpleAdminConsole < Sinatra::Base
     redirect "/devices/#{params[:udid]}"
   end
 
+  post '/install_profile_payload' do
+    login_required
+    mobileconfig_file = params[:mobileconfig_file]
+    halt 400, 'mobileconfig_file is required' unless mobileconfig_file
+
+    raw_profile = mobileconfig_file[:tempfile].read
+    command = Command::InstallProfile.new(raw_profile: raw_profile)
+    content_type 'application/xml'
+    command.request_payload.to_plist.strip
+  end
+
   post '/devices/:udid/push' do
     login_required
     mdm_push_endpoint = MdmDevice.find_by!(udid: params[:udid]).mdm_push_endpoint
