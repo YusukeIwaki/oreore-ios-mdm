@@ -971,6 +971,20 @@ class SimpleAdminConsole < Sinatra::Base
     erb :'ipa/show.html'
   end
 
+  post '/ipa/:id/update' do
+    login_required
+    ipa_file = IpaFile.find(params[:id])
+    asset_file = params[:asset_file]
+    attrs = {}
+    attrs[:bundle_identifier] = params[:bundle_identifier] if params[:bundle_identifier]
+    if asset_file
+      attrs[:filename] = asset_file[:filename]
+      attrs[:asset_file] = asset_file
+    end
+    ipa_file.update!(attrs)
+    redirect "/ipa/#{ipa_file.url_encoded_filename}"
+  end
+
   post '/ipa/:id/delete' do
     login_required
     ipa_file = IpaFile.find(params[:id])

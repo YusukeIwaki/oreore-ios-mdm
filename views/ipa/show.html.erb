@@ -11,6 +11,19 @@
 <pre class="m-0"><%= ERB::Util.h(@ipa.metadata.as_manifest) %></pre>
 </div>
 
+<h3>Update IPA file</h3>
+<form class="card p-3" action="/ipa/<%= @ipa.id %>/update" method="post" enctype="multipart/form-data" onsubmit="return confirm('Are you sure you want to replace this IPA file? The existing file will be deleted.')">
+  <div class="mb-3">
+    <label for="input_bundle_identifier" class="form-label">Bundle identifier</label>
+    <input type="text" class="form-control" id="input_bundle_identifier" name="bundle_identifier" value="<%= @ipa.bundle_identifier %>" required>
+  </div>
+  <div class="mb-3">
+    <label for="form_asset_file" class="form-label">File</label>
+    <input id="form_asset_file" name="asset_file" type="file" class="form-control" required>
+  </div>
+  <button type="submit" class="btn btn-primary">Update</button>
+</form>
+
 <form action="/ipa/<%= @ipa.id %>/delete" method="post" onsubmit="return confirm('Are you sure you want to delete this IPA file?')">
   <button type="submit" class="btn btn-danger mt-2">Delete</button>
 </form>

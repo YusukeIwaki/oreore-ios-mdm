@@ -19,6 +19,55 @@ describe 'POST /ipa', logged_in: true do
   end
 end
 
+describe 'POST /ipa/:id/update', logged_in: true do
+  before {
+    IpaFile.delete_all
+  }
+
+  it 'updates the IPA file with a new file and bundle_identifier' do
+    ipa = IpaFile.create!(
+      filename: 'example.ipa',
+      bundle_identifier: 'com.example.app',
+      asset_file: StringIO.new('fake ipa content'),
+    )
+
+    post "/ipa/#{ipa.id}/update", {
+      bundle_identifier: 'com.example.renamed',
+      asset_file: Rack::Test::UploadedFile.new(StringIO.new('updated ipa content'), 'application/octet-stream', false, original_filename: 'renamed.ipa'),
+    }
+
+    expect(last_response).to be_redirect
+    follow_redirect!
+    expect(last_request.path).to eq('/ipa/renamed.ipa')
+
+    ipa.reload
+    expect(ipa.filename).to eq('renamed.ipa')
+    expect(ipa.bundle_identifier).to eq('com.example.renamed')
+  end
+
+  it 'deletes the previous file from storage when the file is replaced' do
+    ipa = IpaFile.create!(
+      filename: 'example.ipa',
+      bundle_identifier: 'com.example.app',
+      asset_file: StringIO.new('fake ipa content'),
+    )
+
+    old_uploaded_file = ipa.asset_file
+    expect(old_uploaded_file.exists?).to be true
+
+    post "/ipa/#{ipa.id}/update", {
+      bundle_identifier: 'com.example.app',
+      asset_file: Rack::Test::UploadedFile.new(StringIO.new('updated ipa content'), 'application/octet-stream', false, original_filename: 'example.ipa'),
+    }
+
+    expect(old_uploaded_file.exists?).to be false
+
+    ipa.reload
+    expect(ipa.asset_file.exists?).to be true
+    expect(ipa.asset_file.id).not_to eq(old_uploaded_file.id)
+  end
+end
+
 describe 'POST /ipa/:id/delete', logged_in: true do
   before {
     IpaFile.delete_all
