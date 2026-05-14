@@ -6,6 +6,47 @@
 
 <p>Manifest URL: <code><%= "#{ENV['MDM_SERVER_BASE_URL']}/ipa/#{@ipa.url_encoded_filename}/manifest" %></code></p>
 
+<% if @install_result %>
+<div class="alert alert-info">
+  <strong>Install dispatched.</strong>
+  Enqueued: <%= @install_result.enqueued.size %>,
+  Push succeeded: <%= @install_result.push_succeeded.size %>,
+  Push failed: <%= @install_result.push_failed.size %>.
+  <% if @install_result.push_failed.any? %>
+  <ul class="mb-0 mt-2">
+    <% @install_result.push_failed.each do |entry| %>
+    <li><%= entry[:device].serial_number %> (<%= entry[:device].udid %>): <%= ERB::Util.h(entry[:error]) %></li>
+    <% end %>
+  </ul>
+  <% end %>
+</div>
+<% end %>
+
+<h3>Install to devices</h3>
+<%
+  @mdm_devices = MdmDevice.order(:serial_number)
+%>
+<% if @mdm_devices.any? %>
+<form action="/ipa/<%= @ipa.id %>/install" method="post" class="card p-3 mb-3" onsubmit="return confirm('Send InstallApplication to selected devices?')">
+  <div class="mb-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.querySelectorAll('input[name=&quot;device_identifiers[]&quot;]').forEach(function(c){c.checked=true})">Select all</button>
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.querySelectorAll('input[name=&quot;device_identifiers[]&quot;]').forEach(function(c){c.checked=false})">Clear</button>
+  </div>
+  <div class="list-group mb-3">
+    <% @mdm_devices.each do |device| %>
+    <label class="list-group-item">
+      <input type="checkbox" name="device_identifiers[]" value="<%= device.udid %>" class="form-check-input me-2">
+      <%= device.serial_number %>
+      <small class="text-muted ms-2"><%= device.udid %></small>
+    </label>
+    <% end %>
+  </div>
+  <button type="submit" class="btn btn-primary">Install on selected devices</button>
+</form>
+<% else %>
+<p>No MDM devices registered.</p>
+<% end %>
+
 <h3>Manifest</h3>
 <div class="card p-3 m-3">
 <pre class="m-0"><%= ERB::Util.h(@ipa.metadata.as_manifest) %></pre>

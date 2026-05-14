@@ -982,6 +982,15 @@ class SimpleAdminConsole < Sinatra::Base
     erb :'ipa/show.html'
   end
 
+  post '/ipa/:id/install' do
+    login_required
+    @ipa = IpaFile.find(params[:id])
+    udids = Array(params[:device_identifiers]).reject(&:blank?)
+    devices = MdmDevice.where(udid: udids).to_a
+    @install_result = IpaInstallDispatcher.new(ipa_file: @ipa, devices: devices).call
+    erb :'ipa/show.html'
+  end
+
   post '/ipa/:id/update' do
     login_required
     ipa_file = IpaFile.find(params[:id])
@@ -1355,6 +1364,107 @@ class SimpleAdminConsole < Sinatra::Base
   end
 end
 
+class ApiServer < Sinatra::Base
+  set :host_authorization, { permitted_hosts: [] }
+
+  helpers do
+    def api_authorized!
+      expected = ENV['MDM_API_TOKEN']
+      if expected.nil? || expected.empty?
+        halt 503, { 'Content-Type' => 'application/json' }, { error: 'MDM_API_TOKEN is not configured' }.to_json
+      end
+
+      m = request.env['HTTP_AUTHORIZATION']&.match(/\ABearer (.+)\z/)
+      provided = m && m[1]
+      unless provided && Rack::Utils.secure_compare(expected, provided)
+        halt 401, { 'Content-Type' => 'application/json', 'WWW-Authenticate' => 'Bearer' }, { error: 'unauthorized' }.to_json
+      end
+    end
+
+    def json(payload, status_code = 200)
+      content_type 'application/json'
+      status status_code
+      payload.to_json
+    end
+
+    def ipa_to_json(ipa)
+      {
+        id: ipa.id,
+        filename: ipa.filename,
+        bundle_identifier: ipa.bundle_identifier,
+        manifest_url: "#{ENV['MDM_SERVER_BASE_URL']}/ipa/#{ipa.url_encoded_filename}/manifest",
+        created_at: ipa.created_at,
+        updated_at: ipa.updated_at,
+      }
+    end
+  end
+
+  before '/api/*' do
+    api_authorized!
+  end
+
+  get '/api/v1/devices' do
+    json({
+      mdm_devices: MdmDevice.order(:serial_number).map { |d|
+        { udid: d.udid, serial_number: d.serial_number }
+      },
+    })
+  end
+
+  get '/api/v1/ipa' do
+    json({
+      ipa_files: IpaFile.order(:filename).map { |ipa| ipa_to_json(ipa) },
+    })
+  end
+
+  post '/api/v1/ipa' do
+    asset_file = params[:asset_file]
+    bundle_identifier = params[:bundle_identifier]
+    if asset_file.nil? || bundle_identifier.blank?
+      halt 400, { 'Content-Type' => 'application/json' }, { error: 'asset_file and bundle_identifier are required' }.to_json
+    end
+
+    ipa = IpaFile.create!(
+      bundle_identifier: bundle_identifier,
+      filename: asset_file[:filename],
+      asset_file: asset_file,
+    )
+    json(ipa_to_json(ipa), 201)
+  end
+
+  get '/api/v1/ipa/:id' do
+    ipa = IpaFile.find_by(id: params[:id])
+    halt 404, { 'Content-Type' => 'application/json' }, { error: 'not found' }.to_json unless ipa
+    json(ipa_to_json(ipa))
+  end
+
+  post '/api/v1/ipa/:id/install' do
+    ipa = IpaFile.find_by(id: params[:id])
+    halt 404, { 'Content-Type' => 'application/json' }, { error: 'not found' }.to_json unless ipa
+
+    request.body.rewind
+    body_text = request.body.read
+    payload =
+      if body_text.empty?
+        {}
+      else
+        begin
+          JSON.parse(body_text)
+        rescue JSON::ParserError
+          halt 400, { 'Content-Type' => 'application/json' }, { error: 'invalid JSON body' }.to_json
+        end
+      end
+
+    udids = Array(payload['udids']).reject { |v| v.nil? || v.to_s.empty? }
+    devices = MdmDevice.where(udid: udids).to_a
+
+    unknown = udids - devices.map(&:udid)
+    result = IpaInstallDispatcher.new(ipa_file: ipa, devices: devices).call
+
+    json(result.as_json.merge(unknown_udids: unknown))
+  end
+end
+
 class App < Sinatra::Base
   def self._logger
     @_logger ||= Logger.new($stdout)
@@ -1366,5 +1476,6 @@ class App < Sinatra::Base
   use MdmServer
   use MdmByodServer
   use MdmAddeServer
+  use ApiServer
   use SimpleAdminConsole
 end
