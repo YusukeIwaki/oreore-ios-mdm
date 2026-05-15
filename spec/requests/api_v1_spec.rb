@@ -46,7 +46,7 @@ describe 'API v1' do
     end
   end
 
-  describe 'PUT /api/v1/ipa/:id' do
+  describe 'PUT /api/v1/ipa/:filename' do
     before { IpaFile.delete_all }
 
     let!(:ipa) do
@@ -61,7 +61,7 @@ describe 'API v1' do
       old_uploaded = ipa.asset_file
       expect(old_uploaded.exists?).to be true
 
-      put "/api/v1/ipa/#{ipa.id}", {
+      put "/api/v1/ipa/#{ipa.url_encoded_filename}", {
         asset_file: Rack::Test::UploadedFile.new(StringIO.new('new content'), 'application/octet-stream', false, original_filename: 'new.ipa'),
       }, auth_header
 
@@ -77,7 +77,7 @@ describe 'API v1' do
     end
 
     it 'optionally updates the bundle_identifier' do
-      put "/api/v1/ipa/#{ipa.id}", {
+      put "/api/v1/ipa/#{ipa.url_encoded_filename}", {
         bundle_identifier: 'com.example.renamed',
         asset_file: Rack::Test::UploadedFile.new(StringIO.new('new content'), 'application/octet-stream', false, original_filename: 'new.ipa'),
       }, auth_header
@@ -88,19 +88,19 @@ describe 'API v1' do
     end
 
     it 'returns 400 when asset_file is missing' do
-      put "/api/v1/ipa/#{ipa.id}", {}, auth_header
+      put "/api/v1/ipa/#{ipa.url_encoded_filename}", {}, auth_header
       expect(last_response.status).to eq(400)
     end
 
-    it 'returns 404 for an unknown id' do
-      put '/api/v1/ipa/999999', {
+    it 'returns 404 for an unknown filename' do
+      put '/api/v1/ipa/missing.ipa', {
         asset_file: Rack::Test::UploadedFile.new(StringIO.new('x'), 'application/octet-stream', false, original_filename: 'x.ipa'),
       }, auth_header
       expect(last_response.status).to eq(404)
     end
   end
 
-  describe 'GET /api/v1/ipa and /api/v1/ipa/:id' do
+  describe 'GET /api/v1/ipa and /api/v1/ipa/:filename' do
     before { IpaFile.delete_all }
 
     let!(:ipa) do
@@ -119,19 +119,28 @@ describe 'API v1' do
     end
 
     it 'returns the IPA detail' do
-      get "/api/v1/ipa/#{ipa.id}", {}, auth_header
+      get "/api/v1/ipa/#{ipa.url_encoded_filename}", {}, auth_header
       expect(last_response).to be_ok
       data = JSON.parse(last_response.body)
       expect(data['filename']).to eq('example.ipa')
     end
 
-    it 'returns 404 for an unknown id' do
-      get '/api/v1/ipa/999999', {}, auth_header
+    it 'returns the IPA detail when the filename is URL-encoded' do
+      ipa.update!(filename: 'Example App.ipa')
+
+      get "/api/v1/ipa/#{ipa.url_encoded_filename}", {}, auth_header
+      expect(last_response).to be_ok
+      data = JSON.parse(last_response.body)
+      expect(data['filename']).to eq('Example App.ipa')
+    end
+
+    it 'returns 404 for an unknown filename' do
+      get '/api/v1/ipa/missing.ipa', {}, auth_header
       expect(last_response.status).to eq(404)
     end
   end
 
-  describe 'POST /api/v1/ipa/:id/install' do
+  describe 'POST /api/v1/ipa/:filename/install' do
     let!(:ipa) do
       IpaFile.create!(
         filename: 'example.ipa',
@@ -147,7 +156,7 @@ describe 'API v1' do
     end
 
     it 'enqueues InstallApplication and returns the dispatch result' do
-      post "/api/v1/ipa/#{ipa.id}/install", { udids: ['UDID-1', 'UNKNOWN'] }.to_json,
+      post "/api/v1/ipa/#{ipa.url_encoded_filename}/install", { udids: ['UDID-1', 'UNKNOWN'] }.to_json,
            auth_header.merge('CONTENT_TYPE' => 'application/json')
 
       expect(last_response).to be_ok
@@ -161,13 +170,13 @@ describe 'API v1' do
     end
 
     it 'returns 404 when the IPA does not exist' do
-      post '/api/v1/ipa/999999/install', { udids: [] }.to_json,
+      post '/api/v1/ipa/missing.ipa/install', { udids: [] }.to_json,
            auth_header.merge('CONTENT_TYPE' => 'application/json')
       expect(last_response.status).to eq(404)
     end
 
     it 'returns 400 for invalid JSON body' do
-      post "/api/v1/ipa/#{ipa.id}/install", 'not-json',
+      post "/api/v1/ipa/#{ipa.url_encoded_filename}/install", 'not-json',
            auth_header.merge('CONTENT_TYPE' => 'application/json')
       expect(last_response.status).to eq(400)
     end

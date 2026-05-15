@@ -1417,14 +1417,14 @@ class ApiServer < Sinatra::Base
     })
   end
 
-  get '/api/v1/ipa/:id' do
-    ipa = IpaFile.find_by(id: params[:id])
+  get '/api/v1/ipa/:filename' do
+    ipa = IpaFile.find_by(filename: params[:filename])
     halt 404, { 'Content-Type' => 'application/json' }, { error: 'not found' }.to_json unless ipa
     json(ipa_to_json(ipa))
   end
 
-  put '/api/v1/ipa/:id' do
-    ipa = IpaFile.find_by(id: params[:id])
+  put '/api/v1/ipa/:filename' do
+    ipa = IpaFile.find_by(filename: params[:filename])
     halt 404, { 'Content-Type' => 'application/json' }, { error: 'not found' }.to_json unless ipa
 
     asset_file = params[:asset_file]
@@ -1442,8 +1442,8 @@ class ApiServer < Sinatra::Base
     json(ipa_to_json(ipa))
   end
 
-  post '/api/v1/ipa/:id/install' do
-    ipa = IpaFile.find_by(id: params[:id])
+  post '/api/v1/ipa/:filename/install' do
+    ipa = IpaFile.find_by(filename: params[:filename])
     halt 404, { 'Content-Type' => 'application/json' }, { error: 'not found' }.to_json unless ipa
 
     request.body.rewind
