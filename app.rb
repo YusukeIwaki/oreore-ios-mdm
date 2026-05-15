@@ -1417,24 +1417,28 @@ class ApiServer < Sinatra::Base
     })
   end
 
-  post '/api/v1/ipa' do
-    asset_file = params[:asset_file]
-    bundle_identifier = params[:bundle_identifier]
-    if asset_file.nil? || bundle_identifier.blank?
-      halt 400, { 'Content-Type' => 'application/json' }, { error: 'asset_file and bundle_identifier are required' }.to_json
-    end
-
-    ipa = IpaFile.create!(
-      bundle_identifier: bundle_identifier,
-      filename: asset_file[:filename],
-      asset_file: asset_file,
-    )
-    json(ipa_to_json(ipa), 201)
-  end
-
   get '/api/v1/ipa/:id' do
     ipa = IpaFile.find_by(id: params[:id])
     halt 404, { 'Content-Type' => 'application/json' }, { error: 'not found' }.to_json unless ipa
+    json(ipa_to_json(ipa))
+  end
+
+  put '/api/v1/ipa/:id' do
+    ipa = IpaFile.find_by(id: params[:id])
+    halt 404, { 'Content-Type' => 'application/json' }, { error: 'not found' }.to_json unless ipa
+
+    asset_file = params[:asset_file]
+    if asset_file.nil?
+      halt 400, { 'Content-Type' => 'application/json' }, { error: 'asset_file is required' }.to_json
+    end
+
+    attrs = {
+      filename: asset_file[:filename],
+      asset_file: asset_file,
+    }
+    attrs[:bundle_identifier] = params[:bundle_identifier] if params[:bundle_identifier].present?
+
+    ipa.update!(attrs)
     json(ipa_to_json(ipa))
   end
 

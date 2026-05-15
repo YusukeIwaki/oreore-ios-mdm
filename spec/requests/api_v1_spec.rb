@@ -46,26 +46,57 @@ describe 'API v1' do
     end
   end
 
-  describe 'POST /api/v1/ipa' do
+  describe 'PUT /api/v1/ipa/:id' do
     before { IpaFile.delete_all }
 
-    it 'uploads an IPA file' do
-      expect {
-        post '/api/v1/ipa', {
-          bundle_identifier: 'com.example.app',
-          asset_file: Rack::Test::UploadedFile.new(StringIO.new('fake ipa'), 'application/octet-stream', false, original_filename: 'a.ipa'),
-        }, auth_header
-      }.to change { IpaFile.count }.by(1)
-
-      expect(last_response.status).to eq(201)
-      data = JSON.parse(last_response.body)
-      expect(data['filename']).to eq('a.ipa')
-      expect(data['manifest_url']).to eq('https://example.com/ipa/a.ipa/manifest')
+    let!(:ipa) do
+      IpaFile.create!(
+        filename: 'old.ipa',
+        bundle_identifier: 'com.example.old',
+        asset_file: StringIO.new('old content'),
+      )
     end
 
-    it 'returns 400 when required params are missing' do
-      post '/api/v1/ipa', {}, auth_header
+    it 'replaces the IPA file content and updates filename' do
+      old_uploaded = ipa.asset_file
+      expect(old_uploaded.exists?).to be true
+
+      put "/api/v1/ipa/#{ipa.id}", {
+        asset_file: Rack::Test::UploadedFile.new(StringIO.new('new content'), 'application/octet-stream', false, original_filename: 'new.ipa'),
+      }, auth_header
+
+      expect(last_response).to be_ok
+      data = JSON.parse(last_response.body)
+      expect(data['filename']).to eq('new.ipa')
+      expect(data['bundle_identifier']).to eq('com.example.old')
+
+      ipa.reload
+      expect(ipa.filename).to eq('new.ipa')
+      expect(ipa.asset_file.id).not_to eq(old_uploaded.id)
+      expect(old_uploaded.exists?).to be false
+    end
+
+    it 'optionally updates the bundle_identifier' do
+      put "/api/v1/ipa/#{ipa.id}", {
+        bundle_identifier: 'com.example.renamed',
+        asset_file: Rack::Test::UploadedFile.new(StringIO.new('new content'), 'application/octet-stream', false, original_filename: 'new.ipa'),
+      }, auth_header
+
+      expect(last_response).to be_ok
+      ipa.reload
+      expect(ipa.bundle_identifier).to eq('com.example.renamed')
+    end
+
+    it 'returns 400 when asset_file is missing' do
+      put "/api/v1/ipa/#{ipa.id}", {}, auth_header
       expect(last_response.status).to eq(400)
+    end
+
+    it 'returns 404 for an unknown id' do
+      put '/api/v1/ipa/999999', {
+        asset_file: Rack::Test::UploadedFile.new(StringIO.new('x'), 'application/octet-stream', false, original_filename: 'x.ipa'),
+      }, auth_header
+      expect(last_response.status).to eq(404)
     end
   end
 
