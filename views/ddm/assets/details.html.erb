@@ -55,4 +55,8 @@
   <button type="submit" class="btn btn-primary">Submit</button>
 </form>
 
+<form action="/ddm/assets/<%= @asset.id %>/delete" method="post" class="mt-4" onsubmit="return confirm('Delete asset <%= @asset.name %> and all of its targets?')">
+  <button type="submit" class="btn btn-outline-danger">Delete this asset</button>
+</form>
+
 </div>

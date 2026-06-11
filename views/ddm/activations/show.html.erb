@@ -46,4 +46,10 @@
 
   <button type="submit" class="btn btn-primary">Submit</button>
 </form>
+
+<% unless @activation.new_record? %>
+<form action="/ddm/activations/<%= @activation.id %>/delete" method="post" class="mt-4" onsubmit="return confirm('Delete activation <%= @activation.name %>?')">
+  <button type="submit" class="btn btn-outline-danger">Delete this activation</button>
+</form>
+<% end %>
 </div>

@@ -1234,6 +1234,12 @@ class SimpleAdminConsole < Sinatra::Base
     redirect "/ddm/activations/#{params[:id]}"
   end
 
+  post '/ddm/activations/:id/delete' do
+    login_required
+    Ddm::Activation.find(params[:id]).destroy!
+    redirect '/ddm/activations'
+  end
+
   get '/ddm/configurations' do
     login_required
     erb :'ddm/configurations/index.html'
@@ -1261,6 +1267,12 @@ class SimpleAdminConsole < Sinatra::Base
     payload = YAML.load(params[:payload])
     configuration.update!(type: params[:type], payload: payload)
     redirect "/ddm/configurations/#{params[:id]}"
+  end
+
+  post '/ddm/configurations/:id/delete' do
+    login_required
+    Ddm::Configuration.find(params[:id]).destroy!
+    redirect '/ddm/configurations'
   end
 
   get '/ddm/managements' do
@@ -1292,6 +1304,12 @@ class SimpleAdminConsole < Sinatra::Base
     redirect "/ddm/managements/#{management.id}/details"
   end
 
+  post '/ddm/managements/:id/delete' do
+    login_required
+    Ddm::Management.find(params[:id]).destroy!
+    redirect '/ddm/managements'
+  end
+
   get '/ddm/assets' do
     login_required
     erb :'ddm/assets/index.html'
@@ -1319,6 +1337,12 @@ class SimpleAdminConsole < Sinatra::Base
     detail = asset.details.find_or_initialize_by(target_identifier: params[:target_identifier].presence)
     detail.update!(payload: YAML.load(params[:payload]))
     redirect "/ddm/assets/#{asset.id}/details"
+  end
+
+  post '/ddm/assets/:id/delete' do
+    login_required
+    Ddm::Asset.find(params[:id]).destroy!
+    redirect '/ddm/assets'
   end
 
   get '/ddm/public_assets' do
@@ -1361,6 +1385,12 @@ class SimpleAdminConsole < Sinatra::Base
     detail.destroy!
 
     redirect "/ddm/public_assets/#{public_asset.id}/details"
+  end
+
+  post '/ddm/public_assets/:id/delete' do
+    login_required
+    Ddm::PublicAsset.find(params[:id]).destroy_with_blobs!
+    redirect '/ddm/public_assets'
   end
 end
 

@@ -3,7 +3,8 @@ module Ddm
     self.inheritance_column = '__no_sti'
     has_many :details,
       class_name: Ddm::ManagementDetail.to_s,
-      foreign_key: :ddm_management_id
+      foreign_key: :ddm_management_id,
+      dependent: :delete_all
     include DetailsPrioritySorted
     validates :name, presence: true, uniqueness: true
     validates :type, presence: true

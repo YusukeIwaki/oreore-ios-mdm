@@ -342,3 +342,40 @@ describe 'POST /ddm/activations/:id', logged_in: true do
     expect(activation.targets.pluck(:target_identifier)).to contain_exactly('SERIAL2')
   end
 end
+
+describe 'POST /ddm/activations/:id/delete', logged_in: true do
+  before {
+    Ddm::ActivationTarget.delete_all
+    Ddm::Activation.delete_all
+  }
+
+  it 'should delete an activation and its targets' do
+    activation = Ddm::Activation.create!(
+      name: 'apply_test1',
+      type: 'com.apple.activation.simple',
+      payload: { 'StandardConfigurations' => ['@configuration/test1'] },
+    )
+    activation.targets.create!(target_identifier: 'SERIAL1')
+    activation.targets.create!(target_identifier: 'SERIAL2')
+
+    expect {
+      post "/ddm/activations/#{activation.id}/delete"
+    }.to change { Ddm::Activation.count }.by(-1)
+      .and change { Ddm::ActivationTarget.count }.by(-2)
+    expect(last_response).to be_redirect
+    expect(Ddm::Activation.exists?(activation.id)).to be(false)
+    expect(Ddm::ActivationTarget.where(ddm_activation_id: activation.id).count).to eq(0)
+  end
+
+  it 'should raise error if id is wrong' do
+    activation = Ddm::Activation.create!(
+      name: 'apply_test1',
+      type: 'com.apple.activation.simple',
+      payload: { 'StandardConfigurations' => ['@configuration/test1'] },
+    )
+    expect {
+      post '/ddm/activations/hoge/delete'
+    }.to raise_error
+    expect(Ddm::Activation.count).to eq(1)
+  end
+end

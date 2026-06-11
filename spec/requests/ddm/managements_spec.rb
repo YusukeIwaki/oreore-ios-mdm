@@ -144,3 +144,32 @@ describe 'POST /ddm/managements/:id/details', logged_in: true do
     expect(detail.payload['age']).to eq(30)
   end
 end
+
+describe 'POST /ddm/managements/:id/delete', logged_in: true do
+  before {
+    Ddm::ManagementDetail.delete_all
+    Ddm::Management.delete_all
+  }
+
+  it 'should delete a management and its details' do
+    management = Ddm::Management.create!(name: 'test', type: 'com.apple.management.properties')
+    management.details.create!(target_identifier: nil, payload: { 'age' => 20 })
+    management.details.create!(target_identifier: 'SERIALNUMBER1', payload: { 'age' => 30 })
+
+    expect {
+      post "/ddm/managements/#{management.id}/delete"
+    }.to change { Ddm::Management.count }.by(-1)
+      .and change { Ddm::ManagementDetail.count }.by(-2)
+    expect(last_response).to be_redirect
+    expect(Ddm::Management.exists?(management.id)).to be(false)
+    expect(Ddm::ManagementDetail.where(ddm_management_id: management.id).count).to eq(0)
+  end
+
+  it 'should raise error if id is wrong' do
+    Ddm::Management.create!(name: 'test', type: 'com.apple.management.properties')
+    expect {
+      post '/ddm/managements/hoge/delete'
+    }.to raise_error
+    expect(Ddm::Management.count).to eq(1)
+  end
+end

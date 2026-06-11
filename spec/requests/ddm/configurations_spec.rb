@@ -110,3 +110,26 @@ describe 'POST /ddm/configurations/:id', logged_in: true do
     expect(configuration.payload.keys).to contain_exactly('ProfileURL')
   end
 end
+
+describe 'POST /ddm/configurations/:id/delete', logged_in: true do
+  before {
+    Ddm::Configuration.delete_all
+  }
+
+  it 'should delete a configuration' do
+    configuration = Ddm::Configuration.create!(name: 'test1', type: 'com.apple.configuration.hoge', payload: { 'ProfileURL' => 'https://example.com/profiles/test1.mobileconfig' })
+    expect {
+      post "/ddm/configurations/#{configuration.id}/delete"
+    }.to change { Ddm::Configuration.count }.by(-1)
+    expect(last_response).to be_redirect
+    expect(Ddm::Configuration.exists?(configuration.id)).to be(false)
+  end
+
+  it 'should raise error if id is wrong' do
+    Ddm::Configuration.create!(name: 'test1', type: 'com.apple.configuration.hoge', payload: { 'ProfileURL' => 'https://example.com/profiles/test1.mobileconfig' })
+    expect {
+      post '/ddm/configurations/hoge/delete'
+    }.to raise_error
+    expect(Ddm::Configuration.count).to eq(1)
+  end
+end

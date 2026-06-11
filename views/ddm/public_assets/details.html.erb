@@ -53,4 +53,8 @@
 
     <button type="submit" class="btn btn-primary">Submit</button>
   </form>
+
+  <form action="/ddm/public_assets/<%= @public_asset.id %>/delete" method="post" class="mt-4" onsubmit="return confirm('Delete public asset <%= @public_asset.name %> and all of its files?')">
+    <button type="submit" class="btn btn-outline-danger">Delete this public asset</button>
+  </form>
 </div>

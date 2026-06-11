@@ -55,4 +55,8 @@
   <button type="submit" class="btn btn-primary">Submit</button>
 </form>
 
+<form action="/ddm/managements/<%= @management.id %>/delete" method="post" class="mt-4" onsubmit="return confirm('Delete management property <%= @management.name %> and all of its targets?')">
+  <button type="submit" class="btn btn-outline-danger">Delete this management property</button>
+</form>
+
 </div>

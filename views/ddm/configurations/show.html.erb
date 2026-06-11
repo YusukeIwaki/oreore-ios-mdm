@@ -38,4 +38,10 @@
   </div>
   <button type="submit" class="btn btn-primary">Submit</button>
 </form>
+
+<% unless @configuration.new_record? %>
+<form action="/ddm/configurations/<%= @configuration.id %>/delete" method="post" class="mt-4" onsubmit="return confirm('Delete configuration <%= @configuration.name %>?')">
+  <button type="submit" class="btn btn-outline-danger">Delete this configuration</button>
+</form>
+<% end %>
 </div>

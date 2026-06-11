@@ -10,7 +10,8 @@ module Ddm
 
     has_many :targets,
       class_name: Ddm::ActivationTarget.to_s,
-      foreign_key: :ddm_activation_id
+      foreign_key: :ddm_activation_id,
+      dependent: :delete_all
 
     def self.for(ddm_identifier)
       ids = ActivationTarget.for(ddm_identifier).distinct.pluck(:ddm_activation_id)

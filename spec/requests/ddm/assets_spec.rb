@@ -152,3 +152,32 @@ describe 'POST /ddm/assets/:id/details', logged_in: true do
     expect(detail.payload['EmailAddress']).to eq('hoge@example.com')
   end
 end
+
+describe 'POST /ddm/assets/:id/delete', logged_in: true do
+  before {
+    Ddm::AssetDetail.delete_all
+    Ddm::Asset.delete_all
+  }
+
+  it 'should delete an asset and its details' do
+    asset = Ddm::Asset.create!(name: 'test', type: 'com.apple.asset.credential.identity')
+    asset.details.create!(target_identifier: nil, payload: { 'FullName' => 'John Doe' })
+    asset.details.create!(target_identifier: 'SERIALNUMBER1', payload: { 'FullName' => 'Jane Doe' })
+
+    expect {
+      post "/ddm/assets/#{asset.id}/delete"
+    }.to change { Ddm::Asset.count }.by(-1)
+      .and change { Ddm::AssetDetail.count }.by(-2)
+    expect(last_response).to be_redirect
+    expect(Ddm::Asset.exists?(asset.id)).to be(false)
+    expect(Ddm::AssetDetail.where(ddm_asset_id: asset.id).count).to eq(0)
+  end
+
+  it 'should raise error if id is wrong' do
+    Ddm::Asset.create!(name: 'test', type: 'com.apple.asset.credential.identity')
+    expect {
+      post '/ddm/assets/hoge/delete'
+    }.to raise_error
+    expect(Ddm::Asset.count).to eq(1)
+  end
+end
