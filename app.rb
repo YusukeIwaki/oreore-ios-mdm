@@ -2,7 +2,13 @@ require 'bundler'
 Bundler.require :default, (ENV['RACK_ENV'] || :development).to_sym
 
 require 'openssl'
-OpenSSL::Provider.load("legacy") if defined?(OpenSSL::Provider)
+begin
+  OpenSSL::Provider.load("legacy") if defined?(OpenSSL::Provider)
+rescue OpenSSL::Provider::ProviderError
+  # The production image may not ship the legacy provider module.
+  # Both PKCS12 blobs used by the server (push/device certificates)
+  # parse fine with the default provider, so boot without it.
+end
 
 require_relative './config/active_record'
 require_relative './config/shrine'
