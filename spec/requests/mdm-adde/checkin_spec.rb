@@ -221,6 +221,60 @@ describe 'ADDE Checkin' do
     expect(MdmDevice.where(udid: udid).count).to eq(0)
   end
 
+  context 'DeclarativeManagement' do
+    # Production runs with LANG unset, i.e. Encoding.default_external == US-ASCII.
+    # The plist gem builds <data> payloads via `StringIO.new`, which inherits the
+    # default external encoding, so Data containing non-ASCII bytes (e.g. U+2019
+    # in "Activation’s ...") used to crash JSON.parse with
+    # Encoding::InvalidByteSequenceError ("\xE2" on US-ASCII).
+    around do |example|
+      orig = Encoding.default_external
+      Encoding.default_external = Encoding::US_ASCII
+      begin
+        example.run
+      ensure
+        Encoding.default_external = orig
+      end
+    end
+
+    let(:status_body) {
+      status_json = { StatusItems: { description: 'Activation’s predicate evaluated to false.' } }.to_json
+      <<~BODY
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+      <dict>
+        <key>Data</key>
+        <data>
+        #{Base64.strict_encode64(status_json)}
+        </data>
+        <key>Endpoint</key>
+        <string>status</string>
+        <key>MessageType</key>
+        <string>DeclarativeManagement</string>
+        <key>UDID</key>
+        <string>#{udid}</string>
+      </dict>
+      </plist>
+      BODY
+    }
+
+    it 'handles status reports containing non-ASCII characters' do
+      MdmDevice.create!(udid: udid, serial_number: 'SERIALNUMBER1')
+
+      header 'User-Agent', 'MDM/1.0'
+      header 'Content-Type', 'application/x-apple-aspen-mdm-checkin'
+      put '/mdm-adde/checkin', status_body
+
+      expect(last_response.status).to eq(200)
+
+      history = Ddm::SynchronizationRequestHistory.last
+      expect(history.device_identifier).to eq(udid)
+      expect(history.endpoint).to eq('status')
+      expect(history.request_payload['StatusItems']['description']).to include('Activation’s')
+    end
+  end
+
   it 'should require access token for CheckOut' do
     header 'User-Agent', 'MDM/1.0'
     header 'Content-Type', 'application/x-apple-aspen-mdm-checkin'

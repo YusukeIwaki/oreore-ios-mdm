@@ -157,7 +157,10 @@ class MdmServer < Sinatra::Base
       device = MdmDevice.find_by!(udid: udid)
 
       endpoint = plist['Endpoint']
-      data = plist['Data'] ? JSON.parse(plist['Data'].read) : nil
+      # plist's <data> comes back as a StringIO tagged with the default external
+      # encoding (US-ASCII when LANG is unset, as in production), so tag the
+      # UTF-8 JSON bytes explicitly before parsing.
+      data = plist['Data'] ? JSON.parse(plist['Data'].read.force_encoding(Encoding::UTF_8)) : nil
 
       App._logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
       content_type 'application/json'
@@ -611,7 +614,10 @@ class MdmAddeServer < Sinatra::Base
       device = MdmDevice.find_by!(udid: udid)
 
       endpoint = plist['Endpoint']
-      data = plist['Data'] ? JSON.parse(plist['Data'].read) : nil
+      # plist's <data> comes back as a StringIO tagged with the default external
+      # encoding (US-ASCII when LANG is unset, as in production), so tag the
+      # UTF-8 JSON bytes explicitly before parsing.
+      data = plist['Data'] ? JSON.parse(plist['Data'].read.force_encoding(Encoding::UTF_8)) : nil
 
       App._logger.info("DeclarativeManagement: endpoint=#{endpoint} data=#{data.inspect}")
       content_type 'application/json'
