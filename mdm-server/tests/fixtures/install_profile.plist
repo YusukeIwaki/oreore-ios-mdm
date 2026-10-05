@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Command</key>
+	<dict>
+		<key>Payload</key>
+		<data>
+		UkFXLVBST0ZJTEUtQllURVM=
+		</data>
+		<key>RequestType</key>
+		<string>InstallProfile</string>
+	</dict>
+	<key>CommandUUID</key>
+	<string>uuid-install-profile</string>
+</dict>
+</plist>

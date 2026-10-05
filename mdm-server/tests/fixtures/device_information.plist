@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Command</key>
+	<dict>
+		<key>Queries</key>
+		<array>
+			<string>UDID</string>
+			<string>OrganizationInfo</string>
+			<string>AwaitingConfiguration</string>
+		</array>
+		<key>RequestType</key>
+		<string>DeviceInformation</string>
+	</dict>
+	<key>CommandUUID</key>
+	<string>uuid-device-information</string>
+</dict>
+</plist>

@@ -2,8 +2,14 @@
 
 ## Project Overview
 
-Sinatra (Ruby) ベースの iOS MDM サーバー。PostgreSQL + ActiveRecord (sinatra-activerecord) を使用。
-スキーマ管理は Ridgepole (`Schemafile`)。
+iOS MDM サーバー。3つの独立コンポーネント (相互に依存なし):
+
+- `mdm-server/` — Web サーバー本体 (Bun + Hono + drizzle, PostgreSQL)
+- `mdm-tools/` — 証明書・鍵・署名ユーティリティ群 (Rust)
+- `test-server/` — `.well-known` 配信用テストサーバー (Bun 単体)
+
+スキーマ管理は drizzle (`mdm-server/drizzle/`, 定義は `mdm-server/src/schema.ts`)。
+詳細は各ディレクトリの README、デプロイ手順は `mdm-server/RAILWAY.md` を参照。
 
 ## Deployment: Railway
 
@@ -12,12 +18,12 @@ Sinatra (Ruby) ベースの iOS MDM サーバー。PostgreSQL + ActiveRecord (si
 - **Environment:** `dbb366d3-b78e-4752-8807-50b5b1b5ab8e` (production)
 - **Domain:** `iwaki-ios-mdm.up.railway.app`
 - **ビルダー:** Railpack (Dockerfileではない)
+- **Root Directory:** `mdm-server` (サービス設定で指定)
 
 ### Railpack ビルドの前提
 
 - リポジトリのルートに `Dockerfile` という名前のファイルがあると Railway は自動的に Dockerfile ビルドを使う。Railpack を使うには `Dockerfile` を置かないこと。
-- 開発用・本番用の Dockerfile は `Dockerfile.dev`, `Dockerfile.prod.bak` にリネーム済み。
-- 起動コマンドは `Procfile` で定義: `web: bundle exec rackup --host 0.0.0.0 --port $PORT`
+- 起動コマンドは `mdm-server/railway.toml` で定義 (`bun run start` = migrate 後にサーバー起動)。
 
 ### 環境変数の設定
 
@@ -35,16 +41,19 @@ Sinatra (Ruby) ベースの iOS MDM サーバー。PostgreSQL + ActiveRecord (si
 
 1. `railway link --project <id> --service <id> --environment <id>`
 2. 環境変数の設定 (`railway variable set --skip-deploys ...`)
-3. `railway up` でデプロイ
-4. 必要に応じて `railway run ridgepole --apply -f Schemafile -c '{"adapter":"postgresql","url":"$DATABASE_URL"}'` でスキーマ適用
+3. `railway up` でデプロイ (起動時に `drizzle-kit migrate` が自動実行される)
 
 ## テスト
 
-テストは Docker Compose 経由で実行する。PostgreSQL と floci (S3互換ストレージ) が必要なため、ローカルで直接 `bundle exec rspec` を実行するとDB接続エラーになる。
-
 ```bash
-docker compose exec web bundle exec rspec
+cargo test -p mdm-tools                        # Rust (mdm-tools/ で cargo test でも可)
+TEST_DATABASE_URL=postgres://... bun test      # mdm-server/ で実行
+bun test                                       # test-server/ で実行
 ```
+
+`mdm-server` のテストは PostgreSQL と floci (S3互換ストレージ) が必要。
+`TEST_DATABASE_URL` が指す DB は `DATABASE_URL=<test-url> bun run db:migrate` で事前にマイグレーションしておくこと。
+型チェックは各 Bun ディレクトリで `bun run typecheck`。
 
 ## Heroku (旧デプロイ先)
 

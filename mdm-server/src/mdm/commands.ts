@@ -1,0 +1,445 @@
+import { randomUUID } from "node:crypto";
+
+/**
+ * MDM command payload builders (ported from `models/command/*.rb`).
+ * Key order matches the Ruby hashes so plist output stays equivalent.
+ */
+
+export interface CommandPayload {
+  CommandUUID: string;
+  Command: Record<string, unknown>;
+}
+
+interface UuidOption {
+  commandUuid?: string;
+}
+
+function envelope(commandUuid: string | undefined, command: Record<string, unknown>): CommandPayload {
+  return { CommandUUID: commandUuid ?? randomUUID(), Command: command };
+}
+
+function dataBytes(value: string | Uint8Array): Buffer {
+  return typeof value === "string" ? Buffer.from(value, "utf8") : Buffer.from(value);
+}
+
+export function deviceInformation(options: UuidOption = {}): CommandPayload {
+  return envelope(options.commandUuid, {
+    RequestType: "DeviceInformation",
+    Queries: [
+      "UDID",
+      "OrganizationInfo",
+      "AwaitingConfiguration",
+      "MDMOptions",
+      "DeviceName",
+      "OSVersion",
+      "SupplementalOSVersionExtra",
+      "BuildVersion",
+      "SupplementalBuildVersion",
+      "ModelName",
+      "Model",
+      "ModelNumber",
+      "IsAppleSilicon",
+      "ProductName",
+      "SerialNumber",
+      "IMEI",
+      "MEID",
+      "HostName",
+      "IsNetworkTethered",
+    ],
+  });
+}
+
+export function deviceLocation(options: UuidOption = {}): CommandPayload {
+  return envelope(options.commandUuid, { RequestType: "DeviceLocation" });
+}
+
+export function disableLostMode(options: UuidOption = {}): CommandPayload {
+  return envelope(options.commandUuid, { RequestType: "DisableLostMode" });
+}
+
+export function enableLostMode(
+  options: UuidOption & { message?: string; phoneNumber?: string; footnote?: string } = {},
+): CommandPayload {
+  const command: Record<string, unknown> = { RequestType: "EnableLostMode" };
+  if (options.message !== undefined) {
+    command.Message = options.message;
+  }
+  if (options.phoneNumber !== undefined) {
+    command.PhoneNumber = options.phoneNumber;
+  }
+  if (options.footnote !== undefined) {
+    command.Footnote = options.footnote;
+  }
+  return envelope(options.commandUuid, command);
+}
+
+export function eraseDevice(
+  options: UuidOption & {
+    rtsEnabled: boolean;
+    rtsWifiProfileData?: string | Uint8Array;
+    rtsMdmProfileData?: string | Uint8Array;
+  },
+): CommandPayload {
+  const command: Record<string, unknown> = {
+    RequestType: "EraseDevice",
+    PreserveDataPlan: true,
+  };
+  if (options.rtsEnabled) {
+    if (options.rtsWifiProfileData === undefined || options.rtsMdmProfileData === undefined) {
+      throw new TypeError("rts profile data is required when rtsEnabled is true");
+    }
+    command.ReturnToService = {
+      Enabled: true,
+      WiFiProfileData: dataBytes(options.rtsWifiProfileData),
+      MDMProfileData: dataBytes(options.rtsMdmProfileData),
+    };
+  }
+  return envelope(options.commandUuid, command);
+}
+
+export function installApplication(
+  options: UuidOption & { manifestUrl: string },
+): CommandPayload {
+  return envelope(options.commandUuid, {
+    RequestType: "InstallApplication",
+    ManifestURL: options.manifestUrl,
+  });
+}
+
+export function installProfile(
+  options: UuidOption & { rawProfile: string | Uint8Array },
+): CommandPayload {
+  return envelope(options.commandUuid, {
+    RequestType: "InstallProfile",
+    Payload: dataBytes(options.rawProfile),
+  });
+}
+
+/** Sample restriction profile, byte-identical to `Command::InstallProfile.template_new`. */
+export function buildInstallProfileTemplate(options: { profileUuid?: string } = {}): string {
+  const profileUuid = options.profileUuid ?? randomUUID();
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>PayloadContent</key>
+  <array>
+    <dict>
+      <key>PayloadDescription</key>
+      <string>機能制限を構成します</string>
+      <key>PayloadDisplayName</key>
+      <string>制限</string>
+      <key>PayloadIdentifier</key>
+      <string>com.apple.applicationaccess.432EB5DB-CA7F-4E9C-B291-7B54BF76475E</string>
+      <key>PayloadType</key>
+      <string>com.apple.applicationaccess</string>
+      <key>PayloadUUID</key>
+      <string>432EB5DB-CA7F-4E9C-B291-7B54BF76475E</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>allowActivityContinuation</key>
+      <true/>
+      <key>allowAddingGameCenterFriends</key>
+      <true/>
+      <key>allowAirPlayIncomingRequests</key>
+      <true/>
+      <key>allowAirPrint</key>
+      <true/>
+      <key>allowAirPrintCredentialsStorage</key>
+      <true/>
+      <key>allowAirPrintiBeaconDiscovery</key>
+      <true/>
+      <key>allowAppCellularDataModification</key>
+      <true/>
+      <key>allowAppClips</key>
+      <true/>
+      <key>allowAppInstallation</key>
+      <true/>
+      <key>allowAppRemoval</key>
+      <true/>
+      <key>allowApplePersonalizedAdvertising</key>
+      <true/>
+      <key>allowAssistant</key>
+      <true/>
+      <key>allowAssistantWhileLocked</key>
+      <true/>
+      <key>allowAutoCorrection</key>
+      <true/>
+      <key>allowAutoUnlock</key>
+      <true/>
+      <key>allowAutomaticAppDownloads</key>
+      <true/>
+      <key>allowBluetoothModification</key>
+      <true/>
+      <key>allowBookstore</key>
+      <true/>
+      <key>allowBookstoreErotica</key>
+      <true/>
+      <key>allowCamera</key>
+      <true/>
+      <key>allowCellularPlanModification</key>
+      <true/>
+      <key>allowChat</key>
+      <true/>
+      <key>allowCloudBackup</key>
+      <true/>
+      <key>allowCloudDocumentSync</key>
+      <true/>
+      <key>allowCloudPhotoLibrary</key>
+      <true/>
+      <key>allowContinuousPathKeyboard</key>
+      <true/>
+      <key>allowDefinitionLookup</key>
+      <true/>
+      <key>allowDeviceNameModification</key>
+      <true/>
+      <key>allowDeviceSleep</key>
+      <true/>
+      <key>allowDictation</key>
+      <true/>
+      <key>allowESIMModification</key>
+      <true/>
+      <key>allowEnablingRestrictions</key>
+      <true/>
+      <key>allowEnterpriseAppTrust</key>
+      <true/>
+      <key>allowEnterpriseBookBackup</key>
+      <true/>
+      <key>allowEnterpriseBookMetadataSync</key>
+      <true/>
+      <key>allowEraseContentAndSettings</key>
+      <true/>
+      <key>allowExplicitContent</key>
+      <true/>
+      <key>allowFilesNetworkDriveAccess</key>
+      <true/>
+      <key>allowFilesUSBDriveAccess</key>
+      <true/>
+      <key>allowFindMyDevice</key>
+      <true/>
+      <key>allowFindMyFriends</key>
+      <true/>
+      <key>allowFingerprintForUnlock</key>
+      <true/>
+      <key>allowFingerprintModification</key>
+      <true/>
+      <key>allowGameCenter</key>
+      <true/>
+      <key>allowGlobalBackgroundFetchWhenRoaming</key>
+      <true/>
+      <key>allowInAppPurchases</key>
+      <true/>
+      <key>allowKeyboardShortcuts</key>
+      <true/>
+      <key>allowManagedAppsCloudSync</key>
+      <true/>
+      <key>allowMultiplayerGaming</key>
+      <true/>
+      <key>allowMusicService</key>
+      <true/>
+      <key>allowNews</key>
+      <true/>
+      <key>allowNotificationsModification</key>
+      <true/>
+      <key>allowOpenFromManagedToUnmanaged</key>
+      <true/>
+      <key>allowOpenFromUnmanagedToManaged</key>
+      <true/>
+      <key>allowPairedWatch</key>
+      <true/>
+      <key>allowPassbookWhileLocked</key>
+      <true/>
+      <key>allowPasscodeModification</key>
+      <true/>
+      <key>allowPasswordAutoFill</key>
+      <true/>
+      <key>allowPasswordProximityRequests</key>
+      <true/>
+      <key>allowPasswordSharing</key>
+      <true/>
+      <key>allowPersonalHotspotModification</key>
+      <true/>
+      <key>allowPhotoStream</key>
+      <true/>
+      <key>allowPredictiveKeyboard</key>
+      <true/>
+      <key>allowProximitySetupToNewDevice</key>
+      <true/>
+      <key>allowRadioService</key>
+      <true/>
+      <key>allowRemoteAppPairing</key>
+      <true/>
+      <key>allowRemoteScreenObservation</key>
+      <true/>
+      <key>allowSafari</key>
+      <true/>
+      <key>allowScreenShot</key>
+      <true/>
+      <key>allowSharedStream</key>
+      <true/>
+      <key>allowSpellCheck</key>
+      <true/>
+      <key>allowSpotlightInternetResults</key>
+      <true/>
+      <key>allowSystemAppRemoval</key>
+      <true/>
+      <key>allowUIAppInstallation</key>
+      <true/>
+      <key>allowUIConfigurationProfileInstallation</key>
+      <true/>
+      <key>allowUSBRestrictedMode</key>
+      <true/>
+      <key>allowUnpairedExternalBootToRecovery</key>
+      <false/>
+      <key>allowUntrustedTLSPrompt</key>
+      <true/>
+      <key>allowVPNCreation</key>
+      <true/>
+      <key>allowVideoConferencing</key>
+      <true/>
+      <key>allowVoiceDialing</key>
+      <true/>
+      <key>allowWallpaperModification</key>
+      <true/>
+      <key>allowiTunes</key>
+      <true/>
+      <key>enforcedSoftwareUpdateDelay</key>
+      <integer>90</integer>
+      <key>enforcedSoftwareUpdateMajorOSDeferredInstallDelay</key>
+      <integer>90</integer>
+      <key>enforcedSoftwareUpdateMinorOSDeferredInstallDelay</key>
+      <integer>90</integer>
+      <key>forceAirDropUnmanaged</key>
+      <false/>
+      <key>forceAirPrintTrustedTLSRequirement</key>
+      <false/>
+      <key>forceAssistantProfanityFilter</key>
+      <false/>
+      <key>forceAuthenticationBeforeAutoFill</key>
+      <false/>
+      <key>forceAutomaticDateAndTime</key>
+      <false/>
+      <key>forceClassroomAutomaticallyJoinClasses</key>
+      <false/>
+      <key>forceClassroomRequestPermissionToLeaveClasses</key>
+      <false/>
+      <key>forceClassroomUnpromptedAppAndDeviceLock</key>
+      <false/>
+      <key>forceClassroomUnpromptedScreenObservation</key>
+      <false/>
+      <key>forceDelayedSoftwareUpdates</key>
+      <true/>
+      <key>forceDelayedAppSoftwareUpdates</key>
+      <false/>
+      <key>forceDelayedMajorSoftwareUpdates</key>
+      <true/>
+      <key>forceEncryptedBackup</key>
+      <false/>
+      <key>forceITunesStorePasswordEntry</key>
+      <false/>
+      <key>forceLimitAdTracking</key>
+      <false/>
+      <key>forceWatchWristDetection</key>
+      <false/>
+      <key>forceWiFiPowerOn</key>
+      <false/>
+      <key>forceWiFiWhitelisting</key>
+      <false/>
+      <key>ratingApps</key>
+      <integer>1000</integer>
+      <key>ratingMovies</key>
+      <integer>1000</integer>
+      <key>ratingRegion</key>
+      <string>jp</string>
+      <key>ratingTVShows</key>
+      <integer>1000</integer>
+      <key>safariAcceptCookies</key>
+      <real>2</real>
+      <key>safariAllowAutoFill</key>
+      <true/>
+      <key>safariAllowJavaScript</key>
+      <true/>
+      <key>safariAllowPopups</key>
+      <true/>
+      <key>safariForceFraudWarning</key>
+      <false/>
+    </dict>
+  </array>
+  <key>PayloadDisplayName</key>
+  <string>forceDelaySoftwareUpdate90</string>
+  <key>PayloadIdentifier</key>
+  <string>oreoremdm.${profileUuid}</string>
+  <key>PayloadRemovalDisallowed</key>
+  <false/>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadUUID</key>
+  <string>${profileUuid}</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+</dict>
+</plist>
+`;
+}
+
+/** InstallProfile command wrapping the sample restriction profile. */
+export function installProfileTemplate(
+  options: UuidOption & { profileUuid?: string } = {},
+): CommandPayload {
+  return installProfile({
+    commandUuid: options.commandUuid,
+    rawProfile: buildInstallProfileTemplate({ profileUuid: options.profileUuid }),
+  });
+}
+
+export function installedApplicationList(
+  options: UuidOption & { managedAppsOnly?: boolean } = {},
+): CommandPayload {
+  return envelope(options.commandUuid, {
+    Items: [
+      "BundleSize",
+      "DynamicSize",
+      "ExternalVersionIdentifier",
+      "HasUpdateAvailable",
+      "Identifier",
+      "Installing",
+      "Name",
+      "ShortVersion",
+      "Version",
+    ],
+    ManagedAppsOnly: options.managedAppsOnly ?? false,
+    RequestType: "InstalledApplicationList",
+  });
+}
+
+export function profileList(options: UuidOption = {}): CommandPayload {
+  return envelope(options.commandUuid, { RequestType: "ProfileList" });
+}
+
+export function removeProfile(
+  options: UuidOption & { identifier: string },
+): CommandPayload {
+  return envelope(options.commandUuid, {
+    RequestType: "RemoveProfile",
+    Identifier: options.identifier,
+  });
+}
+
+/** RemoveProfile command with a sample `oreoremdm.<uuid>` identifier. */
+export function removeProfileTemplate(
+  options: UuidOption & { profileUuid?: string } = {},
+): CommandPayload {
+  return removeProfile({
+    commandUuid: options.commandUuid,
+    identifier: `oreoremdm.${options.profileUuid ?? randomUUID()}`,
+  });
+}
+
+export function declarativeManagement(
+  options: UuidOption & { tokens: unknown },
+): CommandPayload {
+  return envelope(options.commandUuid, {
+    RequestType: "DeclarativeManagement",
+    Data: Buffer.from(JSON.stringify(options.tokens), "utf8"),
+  });
+}
