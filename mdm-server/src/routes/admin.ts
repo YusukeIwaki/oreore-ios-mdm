@@ -85,8 +85,11 @@ adminRoutes.use(loginRequired());
 adminRoutes.get("/devices", async (c) => {
   const db = c.get("db");
   const [mdmDevices, byodDevices] = await Promise.all([listMdmDevices(db), listByodDevices(db)]);
+  // Fixed width: without it the SVG has only a viewBox and stretches to the container width.
+  // Fixed width: without it the SVG has only a viewBox and stretches to the container width.
   const qrSvg = await QRCode.toString(`${c.get("config").baseUrl}/mdm.mobileconfig`, {
     type: "svg",
+    width: 120,
   });
   return c.html(
     DevicesIndexPage({

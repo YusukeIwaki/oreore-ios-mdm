@@ -14,6 +14,7 @@ import {
 import { formatStoredFileData } from "../../src/storage/files";
 import { truncateAll } from "../db/helpers";
 import { adminWorld, loginCookie } from "../helpers/admin";
+import { renderedBox } from "../helpers/browser";
 
 describe("admin devices", () => {
   let world: Awaited<ReturnType<typeof adminWorld>>;
@@ -58,6 +59,17 @@ describe("admin devices", () => {
     expect(html).toContain("SERIAL1");
     expect(html).toContain("/byod/devices/enroll-1");
     expect(html).toContain("<svg");
+
+    // The enrollment QR must render small: a bare viewBox-only SVG stretches
+    // to the container width, so assert the actual rendered box, not markup.
+    const box = await renderedBox({
+      fetch: (req) => world.app.fetch(req),
+      cookie,
+      path: "/devices",
+      selector: "svg",
+    });
+    expect(box.width).toBeCloseTo(120, 0);
+    expect(box.height).toBeCloseTo(120, 0);
   });
 
   test("show renders the queue, histories, and sync list", async () => {
