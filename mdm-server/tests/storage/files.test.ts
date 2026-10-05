@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import {
   FileStore,
   formatStoredFileData,
@@ -61,6 +61,18 @@ describe("local backend", () => {
 describe("S3 backend", () => {
   const endpoint = process.env.TEST_S3_ENDPOINT ?? "http://localhost:4566";
   const bucket = process.env.TEST_S3_BUCKET ?? "oreore-ios-mdm-test";
+
+  // Like the old RSpec before(:suite) hook: floci starts without buckets,
+  // and accepts an unsigned PUT to create one (200 created, 409 exists).
+  beforeAll(async () => {
+    const response = await fetch(
+      `${endpoint.replace(/\/$/, "")}/${encodeURIComponent(bucket)}`,
+      { method: "PUT" },
+    );
+    if (response.status !== 200 && response.status !== 409) {
+      throw new Error(`failed to create test bucket: HTTP ${response.status}`);
+    }
+  });
 
   test("upload/read/delete round-trip against floci", async () => {
     const prefix = `bun-test-${Date.now()}`;
