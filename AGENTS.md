@@ -35,13 +35,13 @@ iOS MDM サーバー。3つの独立コンポーネント (相互に依存なし
 
 - `railway link` でプロジェクトをリンクしてから操作する
 - `railway add` や `railway domain` など一部コマンドは権限エラーになることがある。その場合はダッシュボードから操作する
-- デプロイは `railway up` (ローカルファイルを直接アップロード)
+- デプロイは `railway up ./mdm-server --path-as-root` (リポジトリルートから実行。`--path-as-root` がないと Railpack がリポジトリルートをビルドして Caddy 静的サーバーになる)
 
 ### デプロイ手順
 
 1. `railway link --project <id> --service <id> --environment <id>`
 2. 環境変数の設定 (`railway variable set --skip-deploys ...`)
-3. `railway up` でデプロイ (起動時に `drizzle-kit migrate` が自動実行される)
+3. `railway up ./mdm-server --path-as-root` でデプロイ (起動時に `drizzle-kit migrate` が自動実行される)
 
 ## テスト
 

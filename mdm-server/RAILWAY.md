@@ -7,8 +7,9 @@ Railway が Dockerfile ビルドに切り替わるため、置かないこと
 ## 1. サービス設定 (ダッシュボード)
 
 - **Root Directory**: `mdm-server`
-  (サービス Settings > Source > Root Directory)
-- デプロイは `railway up` (リポジトリルートから実行)
+  (サービス Settings > Source > Root Directory。
+  ただし `railway up` の CLI アップロードには適用されないため、
+  デプロイ時は `--path-as-root` で明示する。下記「3. デプロイ」参照)
 - ヘルスチェックは `railway.toml` で `/health` を指定済み
 
 ## 2. 環境変数
@@ -62,8 +63,16 @@ Heroku からの移行は `heroku config:get <KEY> --app oreore-ios-mdm` で取�
 ## 3. デプロイ
 
 ```bash
-railway up
+# リポジトリルートから実行すること
+railway up ./mdm-server --path-as-root
 ```
+
+`railway up` はリンクされたディレクトリ (リポジトリルート) を
+アーカイブするため、`--path-as-root` を付けないと Railpack が
+リポジトリルートをビルド対象にして Caddy の静的ファイルサーバーに
+なってしまう (カレントディレクトリを移動しても無意味)。
+`./mdm-server` をアーカイブルートにすることで `package.json` と
+`railway.toml` が正しく検出される。
 
 起動コマンド (`bun run start`) が `drizzle-kit migrate` → `bun src/index.ts` の順に
 実行するので、初回デプロイ時にテーブルが自動作成される。
@@ -77,6 +86,11 @@ railway up
 
 ## 注意
 
+- Ruby 時代の DB に初めて Bun 版をデプロイすると、`drizzle-kit migrate` が
+  既存テーブルへの `CREATE TABLE` で失敗する (ベースライン問題)。
+  その場合はスキーマ一致を確認のうえ `__drizzle_migrations` に
+  0000 の sha256 ハッシュ行を手動登録する
+  (`DATABASE_PUBLIC_URL` で接続し `INSERT`。2026-10-05 に本番で実施済み)。
 - Apple のライブ連携 (APNs/DEP/VPP) は実機・実トークンでの E2E が別途必要
   (単体テストではスタブ化している)。
 - DEP トークンのアップロードには `openssl` CLI が必要。
