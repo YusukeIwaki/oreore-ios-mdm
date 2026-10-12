@@ -1,0 +1,15 @@
+# Railway deployment for mdm-server (Railpack builder).
+#
+# The Railway service's "Root Directory" must be set to `mdm-server`
+# (dashboard: service Settings > Source > Root Directory).
+# Deploys run `bun install`, then this start command.
+
+[build]
+builder = "RAILPACK"
+
+[deploy]
+startCommand = "bun run start"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

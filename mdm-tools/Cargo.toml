@@ -1,0 +1,38 @@
+[package]
+name = "mdm-tools"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "create-dep-key"
+path = "src/bin/create_dep_key.rs"
+
+[[bin]]
+name = "create-server-certificates"
+path = "src/bin/create_server_certificates.rs"
+
+[[bin]]
+name = "mdm-vendor-sign"
+path = "src/bin/mdm_vendor_sign.rs"
+
+[[bin]]
+name = "mdmcert-download-decrypt"
+path = "src/bin/mdmcert_download_decrypt.rs"
+
+[[bin]]
+name = "mdmcert-download-request"
+path = "src/bin/mdmcert_download_request.rs"
+
+[[bin]]
+name = "use-push-certificate"
+path = "src/bin/use_push_certificate.rs"
+
+[dependencies]
+openssl = "0.10"
+base64 = "0.22"
+plist = "1"
+serde_json = "1"
+ureq = { version = "3", features = ["json"] }
+
+[dev-dependencies]
+tempfile = "3"

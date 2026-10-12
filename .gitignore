@@ -10,9 +10,12 @@
 
 /.DS_Store
 /.heroku.config
-/declarations
-/docker-compose.override.yml
 
 /public/uploads
 /deploy.sh
 /data-backup
+
+/mdm-tools/target/
+/mdm-server/uploads/
+
+node_modules/
