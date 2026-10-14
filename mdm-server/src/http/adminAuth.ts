@@ -1,4 +1,5 @@
-import { createMiddleware } from "hono/factory";
+import type { Context } from "hono";
+import { HTTPException } from "hono/http-exception";
 import type { AppEnv } from "./context";
 import { getSession, setSession } from "./session";
 
@@ -35,26 +36,27 @@ export function capturesReturnTo(method: string, accept: string | undefined): bo
 }
 
 /**
- * Mount on the admin route prefixes only (`app.use("/devices/*", loginRequired())`).
- * A bare `app.use(loginRequired())` also runs for unmatched paths such as
- * `/favicon.ico`, which is how the login redirect used to land on a 404.
+ * Sinatra's `login_required`, called as the first statement of every admin
+ * console handler. Unauthenticated requests are bounced to the login page
+ * (via HTTPException, like Sinatra's `halt`), remembering page navigations as
+ * `returnTo`. Doing this per handler rather than via `app.use()` keeps
+ * unmatched paths such as `/favicon.ico` as plain 404s that never touch the
+ * session.
  */
-export function loginRequired() {
-  return createMiddleware<AppEnv>(async (c, next) => {
-    const config = c.get("config");
-    const session = await getSession(c, config.sessionSecret);
-    if (!session.uid) {
-      if (capturesReturnTo(c.req.method, c.req.header("accept"))) {
-        const query = new URL(c.req.url).search;
-        await setSession(
-          c,
-          config.sessionSecret,
-          { ...session, returnTo: `${c.req.path}${query}` },
-          config.secureCookies,
-        );
-      }
-      return c.redirect("/");
-    }
-    await next();
-  });
+export async function loginRequired(c: Context<AppEnv>): Promise<void> {
+  const config = c.get("config");
+  const session = await getSession(c, config.sessionSecret);
+  if (session.uid) {
+    return;
+  }
+  if (capturesReturnTo(c.req.method, c.req.header("accept"))) {
+    const query = new URL(c.req.url).search;
+    await setSession(
+      c,
+      config.sessionSecret,
+      { ...session, returnTo: `${c.req.path}${query}` },
+      config.secureCookies,
+    );
+  }
+  throw new HTTPException(302, { res: c.redirect("/") });
 }

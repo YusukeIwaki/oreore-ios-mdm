@@ -50,8 +50,6 @@ import {
 /** Admin console: declarative device management resources. */
 export const adminDdmRoutes = new Hono<AppEnv>();
 
-adminDdmRoutes.use("/ddm/*", loginRequired());
-
 async function groupSummaries(db: Database) {
   const groups = await db.select().from(schema.ddmDeviceGroups).orderBy(asc(schema.ddmDeviceGroups.id));
   const out: { id: number; name: string; items: string[] }[] = [];
@@ -96,6 +94,7 @@ async function masterSummaries(
 }
 
 adminDdmRoutes.get("/ddm", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const [groups, targets, configurations, assets, managements, publicAssets] = await Promise.all([
     groupSummaries(db),
@@ -131,10 +130,12 @@ adminDdmRoutes.get("/ddm", async (c) => {
 // --- Device groups ---
 
 adminDdmRoutes.get("/ddm/device_groups", async (c) => {
+  await loginRequired(c);
   return c.html(DdmDeviceGroupsPage({ groups: await groupSummaries(c.get("db")) }));
 });
 
 adminDdmRoutes.post("/ddm/device_groups", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   await createDeviceGroup(c.get("db"), {
     name: textField(body.name),
@@ -144,6 +145,7 @@ adminDdmRoutes.post("/ddm/device_groups", async (c) => {
 });
 
 adminDdmRoutes.get("/ddm/device_groups/:id", async (c) => {
+  await loginRequired(c);
   const idParam = c.req.param("id");
   if (idParam === "new") {
     return c.html(DdmDeviceGroupFormPage({ group: null, serialNumbersText: "" }));
@@ -173,12 +175,14 @@ adminDdmRoutes.get("/ddm/device_groups/:id", async (c) => {
 });
 
 adminDdmRoutes.post("/ddm/device_groups/:id", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   await updateDeviceGroupItems(c.get("db"), parseIdParam(c.req.param("id")), textField(body.serial_numbers));
   return c.redirect(`/ddm/device_groups/${c.req.param("id")}`);
 });
 
 adminDdmRoutes.get("/ddm/device_groups/:id/rename", async (c) => {
+  await loginRequired(c);
   const id = parseIdParam(c.req.param("id"));
   const [group] = await c
     .get("db")
@@ -193,6 +197,7 @@ adminDdmRoutes.get("/ddm/device_groups/:id/rename", async (c) => {
 });
 
 adminDdmRoutes.post("/ddm/device_groups/:id/rename", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   await renameDeviceGroup(c.get("db"), parseIdParam(c.req.param("id")), textField(body.name));
   return c.redirect(`/ddm/device_groups/${c.req.param("id")}`);
@@ -201,6 +206,7 @@ adminDdmRoutes.post("/ddm/device_groups/:id/rename", async (c) => {
 // --- Activations ---
 
 adminDdmRoutes.get("/ddm/activations", async (c) => {
+  await loginRequired(c);
   const targets = await listActivationTargetsDisplaySorted(c.get("db"));
   return c.html(
     DdmActivationsPage({
@@ -216,6 +222,7 @@ adminDdmRoutes.get("/ddm/activations", async (c) => {
 });
 
 adminDdmRoutes.post("/ddm/activations", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   await createActivation(c.get("db"), {
     name: textField(body.name),
@@ -226,6 +233,7 @@ adminDdmRoutes.post("/ddm/activations", async (c) => {
 });
 
 adminDdmRoutes.get("/ddm/activations/:id", async (c) => {
+  await loginRequired(c);
   const idParam = c.req.param("id");
   if (idParam === "new") {
     return c.html(
@@ -246,6 +254,7 @@ adminDdmRoutes.get("/ddm/activations/:id", async (c) => {
 });
 
 adminDdmRoutes.post("/ddm/activations/:id", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   await updateActivation(c.get("db"), parseIdParam(c.req.param("id")), {
     payloadYaml: textField(body.payload),
@@ -255,6 +264,7 @@ adminDdmRoutes.post("/ddm/activations/:id", async (c) => {
 });
 
 adminDdmRoutes.post("/ddm/activations/:id/delete", async (c) => {
+  await loginRequired(c);
   await deleteActivation(c.get("db"), parseIdParam(c.req.param("id")));
   return c.redirect("/ddm/activations");
 });
@@ -262,6 +272,7 @@ adminDdmRoutes.post("/ddm/activations/:id/delete", async (c) => {
 // --- Configurations ---
 
 adminDdmRoutes.get("/ddm/configurations", async (c) => {
+  await loginRequired(c);
   const rows = await c
     .get("db")
     .select()
@@ -280,6 +291,7 @@ adminDdmRoutes.get("/ddm/configurations", async (c) => {
 });
 
 adminDdmRoutes.post("/ddm/configurations", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   await createConfiguration(c.get("db"), {
     name: textField(body.name),
@@ -290,6 +302,7 @@ adminDdmRoutes.post("/ddm/configurations", async (c) => {
 });
 
 adminDdmRoutes.get("/ddm/configurations/:id", async (c) => {
+  await loginRequired(c);
   const idParam = c.req.param("id");
   if (idParam === "new") {
     return c.html(
@@ -315,6 +328,7 @@ adminDdmRoutes.get("/ddm/configurations/:id", async (c) => {
 });
 
 adminDdmRoutes.post("/ddm/configurations/:id", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   await updateConfiguration(c.get("db"), parseIdParam(c.req.param("id")), {
     type: textField(body.type),
@@ -324,6 +338,7 @@ adminDdmRoutes.post("/ddm/configurations/:id", async (c) => {
 });
 
 adminDdmRoutes.post("/ddm/configurations/:id/delete", async (c) => {
+  await loginRequired(c);
   await deleteConfiguration(c.get("db"), parseIdParam(c.req.param("id")));
   return c.redirect("/ddm/configurations");
 });
@@ -388,6 +403,7 @@ async function yamlMasterDetails(
 for (const kind of ["asset", "management"] as const) {
   const config = YAML_MASTER_CONFIG[kind];
   adminDdmRoutes.get(config.basePath, async (c) => {
+    await loginRequired(c);
     return c.html(
       DdmMastersPage({
         ...config,
@@ -398,6 +414,7 @@ for (const kind of ["asset", "management"] as const) {
   });
 
   adminDdmRoutes.post(config.basePath, async (c) => {
+    await loginRequired(c);
     const body = await c.req.parseBody();
     await createMaster(c.get("db"), kind, {
       name: textField(body.name),
@@ -408,6 +425,7 @@ for (const kind of ["asset", "management"] as const) {
 
   for (const detailsPath of [`${config.basePath}/:id/details`, `${config.basePath}/:id/details/:detail_id`] as const) {
     adminDdmRoutes.get(detailsPath, async (c) => {
+      await loginRequired(c);
       const detailParam = c.req.param("detail_id");
       const { master, detail, details } = await yamlMasterDetails(
         c,
@@ -429,6 +447,7 @@ for (const kind of ["asset", "management"] as const) {
   }
 
   adminDdmRoutes.post(`${config.basePath}/:id/details`, async (c) => {
+    await loginRequired(c);
     const body = await c.req.parseBody();
     await upsertDetailPayload(c.get("db"), kind, parseIdParam(c.req.param("id")), {
       targetIdentifier: textField(body.target_identifier),
@@ -438,6 +457,7 @@ for (const kind of ["asset", "management"] as const) {
   });
 
   adminDdmRoutes.post(`${config.basePath}/:id/delete`, async (c) => {
+    await loginRequired(c);
     await deleteMaster(c.get("db"), kind, parseIdParam(c.req.param("id")));
     return c.redirect(config.basePath);
   });
@@ -446,6 +466,7 @@ for (const kind of ["asset", "management"] as const) {
 // --- Public assets ---
 
 adminDdmRoutes.get("/ddm/public_assets", async (c) => {
+  await loginRequired(c);
   return c.html(
     DdmMastersPage({
       basePath: "/ddm/public_assets",
@@ -461,6 +482,7 @@ adminDdmRoutes.get("/ddm/public_assets", async (c) => {
 });
 
 adminDdmRoutes.post("/ddm/public_assets", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   await createMaster(c.get("db"), "publicAsset", { name: textField(body.name) });
   return c.redirect("/ddm/public_assets");
@@ -507,6 +529,7 @@ for (const detailsPath of [
   "/ddm/public_assets/:id/details/:detail_id",
 ] as const) {
   adminDdmRoutes.get(detailsPath, async (c) => {
+    await loginRequired(c);
     const detailParam = c.req.param("detail_id");
     const data = await publicAssetDetailsData(
       c,
@@ -526,6 +549,7 @@ for (const detailsPath of [
 }
 
 adminDdmRoutes.post("/ddm/public_assets/:id/details", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   const file = await uploadedFile(body.asset_file);
   if (!file) {
@@ -539,6 +563,7 @@ adminDdmRoutes.post("/ddm/public_assets/:id/details", async (c) => {
 });
 
 adminDdmRoutes.post("/ddm/public_assets/:id/details/:detail_id/delete", async (c) => {
+  await loginRequired(c);
   await deletePublicAssetDetail(
     c.get("db"),
     parseIdParam(c.req.param("id")),
@@ -548,6 +573,7 @@ adminDdmRoutes.post("/ddm/public_assets/:id/details/:detail_id/delete", async (c
 });
 
 adminDdmRoutes.post("/ddm/public_assets/:id/delete", async (c) => {
+  await loginRequired(c);
   await deletePublicAssetWithBlobs(c.get("db"), c.get("fileStore"), parseIdParam(c.req.param("id")));
   return c.redirect("/ddm/public_assets");
 });

@@ -78,23 +78,10 @@ import {
 /** Admin console: devices, RTS, VPP, IPA, DEP (DDM lives in `adminDdm.ts`). */
 export const adminRoutes = new Hono<AppEnv>();
 
-// Scoped to the console prefixes so unmatched paths (e.g. /favicon.ico) fall through to 404.
-for (const prefix of [
-  "/devices/*",
-  "/byod/*",
-  "/commands/*",
-  "/dep/*",
-  "/ipa/*",
-  "/install_profile_payload",
-  "/rts/*",
-  "/vpp/*",
-]) {
-  adminRoutes.use(prefix, loginRequired());
-}
-
 // --- Devices ---
 
 adminRoutes.get("/devices", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const [mdmDevices, byodDevices] = await Promise.all([listMdmDevices(db), listByodDevices(db)]);
   // Fixed width: without it the SVG has only a viewBox and stretches to the container width.
@@ -134,6 +121,7 @@ async function deviceShowData(c: Context<AppEnv>, udid: string) {
 }
 
 adminRoutes.get("/devices/:udid", async (c) => {
+  await loginRequired(c);
   const udid = c.req.param("udid");
   const { device, form, queue, syncHistories } = await deviceShowData(c, udid);
   return c.html(
@@ -173,6 +161,7 @@ adminRoutes.get("/devices/:udid", async (c) => {
 });
 
 adminRoutes.get("/devices/:udid/command_request_form_inner", async (c) => {
+  await loginRequired(c);
   const udid = c.req.param("udid");
   const device = await findMdmDeviceByUdid(c.get("db"), udid);
   const form = await mdmCommandForm(c, device.serialNumber, {
@@ -193,6 +182,7 @@ adminRoutes.get("/devices/:udid/command_request_form_inner", async (c) => {
 });
 
 adminRoutes.get("/devices/:udid/synchronization_request_histories/:id", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const device = await findMdmDeviceByUdid(db, c.req.param("udid"));
   const history = await findSyncHistory(db, device.udid, Number(c.req.param("id")));
@@ -218,6 +208,7 @@ adminRoutes.get("/devices/:udid/synchronization_request_histories/:id", async (c
 });
 
 adminRoutes.get("/commands/:command_uuid", async (c) => {
+  await loginRequired(c);
   const history = await findCommandHistoryByUuid(c.get("db"), c.req.param("command_uuid"));
   return c.html(
     CommandHistoryPage({
@@ -229,6 +220,7 @@ adminRoutes.get("/commands/:command_uuid", async (c) => {
 });
 
 adminRoutes.post("/devices/:udid/commands", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const udid = c.req.param("udid");
   await findMdmDeviceByUdid(db, udid);
@@ -238,6 +230,7 @@ adminRoutes.post("/devices/:udid/commands", async (c) => {
 });
 
 adminRoutes.post("/install_profile_payload", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   const file = await uploadedFile(body.mobileconfig_file);
   if (!file) {
@@ -248,6 +241,7 @@ adminRoutes.post("/install_profile_payload", async (c) => {
 });
 
 adminRoutes.post("/devices/:udid/push", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const device = await findMdmDeviceByUdid(db, c.req.param("udid"));
   const endpoint = await findMdmPushEndpoint(db, device.id);
@@ -262,6 +256,7 @@ adminRoutes.post("/devices/:udid/push", async (c) => {
 // --- BYOD devices ---
 
 adminRoutes.get("/byod/devices/:enrollment_id", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const enrollmentId = c.req.param("enrollment_id");
   const device = await findByodDeviceByEnrollment(db, enrollmentId);
@@ -298,6 +293,7 @@ adminRoutes.get("/byod/devices/:enrollment_id", async (c) => {
 });
 
 adminRoutes.get("/byod/devices/:enrollment_id/command_request_form_inner", async (c) => {
+  await loginRequired(c);
   const enrollmentId = c.req.param("enrollment_id");
   await findByodDeviceByEnrollment(c.get("db"), enrollmentId);
   const form = byodCommandForm({ command: c.req.query("command") });
@@ -312,6 +308,7 @@ adminRoutes.get("/byod/devices/:enrollment_id/command_request_form_inner", async
 });
 
 adminRoutes.post("/byod/devices/:enrollment_id/commands", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const enrollmentId = c.req.param("enrollment_id");
   await findByodDeviceByEnrollment(db, enrollmentId);
@@ -321,6 +318,7 @@ adminRoutes.post("/byod/devices/:enrollment_id/commands", async (c) => {
 });
 
 adminRoutes.post("/byod/devices/:enrollment_id/push", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const device = await findByodDeviceByEnrollment(db, c.req.param("enrollment_id"));
   const endpoint = await findByodPushEndpoint(db, device.id);
@@ -335,6 +333,7 @@ adminRoutes.post("/byod/devices/:enrollment_id/push", async (c) => {
 // --- RTS ---
 
 adminRoutes.get("/rts/wifi_profiles", async (c) => {
+  await loginRequired(c);
   const profiles = await listRtsProfiles(c.get("db"));
   return c.html(
     RtsWifiProfilesPage({
@@ -345,6 +344,7 @@ adminRoutes.get("/rts/wifi_profiles", async (c) => {
 });
 
 adminRoutes.get("/rts/wifi_profiles/:id", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const profile = await findRtsProfileById(db, Number(c.req.param("id")));
   const content = Buffer.from(
@@ -360,6 +360,7 @@ adminRoutes.get("/rts/wifi_profiles/:id", async (c) => {
 });
 
 adminRoutes.post("/rts/wifi_profiles", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   const file = await uploadedFile(body.asset_file);
   if (file) {
@@ -372,6 +373,7 @@ adminRoutes.post("/rts/wifi_profiles", async (c) => {
 });
 
 adminRoutes.post("/rts/wifi_profiles/:id/delete", async (c) => {
+  await loginRequired(c);
   await deleteRtsProfile(c.get("db"), c.get("fileStore"), Number(c.req.param("id")));
   return c.redirect("/rts/wifi_profiles");
 });
@@ -379,11 +381,13 @@ adminRoutes.post("/rts/wifi_profiles/:id/delete", async (c) => {
 // --- VPP ---
 
 adminRoutes.get("/vpp", async (c) => {
+  await loginRequired(c);
   const tokens = await listVppTokens(c.get("db"));
   return c.html(VppIndexPage({ tokens: tokens.map((token) => ({ filename: token.filename })) }));
 });
 
 adminRoutes.post("/vpp", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   const file = await uploadedFile(body.vpptoken_file);
   if (file) {
@@ -393,6 +397,7 @@ adminRoutes.post("/vpp", async (c) => {
 });
 
 adminRoutes.get("/vpp/:filename", async (c) => {
+  await loginRequired(c);
   const filename = c.req.param("filename");
   const token = await findVppTokenByFilename(c.get("db"), filename);
   const response = (await vppClientFor(c, token.value).get("assets")) as {
@@ -402,6 +407,7 @@ adminRoutes.get("/vpp/:filename", async (c) => {
 });
 
 adminRoutes.get("/vpp/:filename/:adam_id", async (c) => {
+  await loginRequired(c);
   const filename = c.req.param("filename");
   const adamId = c.req.param("adam_id");
   const token = await findVppTokenByFilename(c.get("db"), filename);
@@ -432,12 +438,14 @@ adminRoutes.get("/vpp/:filename/:adam_id", async (c) => {
 });
 
 adminRoutes.get("/vpp/:filename/:adam_id/assignments", async (c) => {
+  await loginRequired(c);
   // Just in case the POST URL was bookmarked through the login redirect.
   const token = await findVppTokenByFilename(c.get("db"), c.req.param("filename"));
   return c.redirect(`/vpp/${urlEncodeFilename(token.filename)}/${c.req.param("adam_id")}`);
 });
 
 adminRoutes.post("/vpp/:filename/:adam_id/assignments", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const token = await findVppTokenByFilename(db, c.req.param("filename"));
   const adamId = c.req.param("adam_id");
@@ -473,11 +481,13 @@ async function renderIpaShow(
 }
 
 adminRoutes.get("/ipa", async (c) => {
+  await loginRequired(c);
   const ipas = await listIpaFiles(c.get("db"));
   return c.html(IpaIndexPage({ ipas: ipas.map((ipa) => ({ filename: ipa.filename })) }));
 });
 
 adminRoutes.post("/ipa", async (c) => {
+  await loginRequired(c);
   const body = await c.req.parseBody();
   const file = await uploadedFile(body.asset_file);
   if (file) {
@@ -491,6 +501,7 @@ adminRoutes.post("/ipa", async (c) => {
 });
 
 adminRoutes.get("/ipa/:filename", async (c) => {
+  await loginRequired(c);
   const filename = c.req.param("filename");
   const ipas = await listIpaFiles(c.get("db"));
   const ipa = ipas.find((row) => row.filename === filename);
@@ -501,6 +512,7 @@ adminRoutes.get("/ipa/:filename", async (c) => {
 });
 
 adminRoutes.post("/ipa/:id/install", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const config = c.get("config");
   const ipa = await findIpaById(db, Number(c.req.param("id")));
@@ -536,6 +548,7 @@ adminRoutes.post("/ipa/:id/install", async (c) => {
 });
 
 adminRoutes.post("/ipa/:id/update", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const id = Number(c.req.param("id"));
   const body = await c.req.parseBody();
@@ -554,6 +567,7 @@ adminRoutes.post("/ipa/:id/update", async (c) => {
 });
 
 adminRoutes.post("/ipa/:id/delete", async (c) => {
+  await loginRequired(c);
   await deleteIpa(c.get("db"), c.get("fileStore"), Number(c.req.param("id")));
   return c.redirect("/ipa");
 });
@@ -561,11 +575,13 @@ adminRoutes.post("/ipa/:id/delete", async (c) => {
 // --- DEP ---
 
 adminRoutes.get("/dep", async (c) => {
+  await loginRequired(c);
   const tokens = await listDepTokens(c.get("db"));
   return c.html(DepIndexPage({ tokens: tokens.map((token) => ({ filename: token.filename })) }));
 });
 
 adminRoutes.post("/dep", async (c) => {
+  await loginRequired(c);
   const config = c.get("config");
   const body = await c.req.parseBody();
   const file = await uploadedFile(body.dep_token_file);
@@ -580,6 +596,7 @@ adminRoutes.post("/dep", async (c) => {
 });
 
 adminRoutes.get("/dep/pub_key.pem", async (c) => {
+  await loginRequired(c);
   const config = c.get("config");
   if (!config.depKeyPem) {
     throw new Error("DEP_KEY_BASE64 is not configured");
@@ -595,11 +612,13 @@ adminRoutes.get("/dep/pub_key.pem", async (c) => {
 });
 
 adminRoutes.get("/dep/:filename", async (c) => {
+  await loginRequired(c);
   const token = await findDepTokenByFilename(c.get("db"), c.req.param("filename"));
   return c.html(DepShowPage({ filename: token.filename }));
 });
 
 adminRoutes.get("/dep/:filename/account", async (c) => {
+  await loginRequired(c);
   const token = await findDepTokenByFilename(c.get("db"), c.req.param("filename"));
   const client = depClientFor(c, token);
   try {
@@ -613,6 +632,7 @@ adminRoutes.get("/dep/:filename/account", async (c) => {
 });
 
 adminRoutes.get("/dep/:filename/os_beta_enrollment_tokens", async (c) => {
+  await loginRequired(c);
   const token = await findDepTokenByFilename(c.get("db"), c.req.param("filename"));
   const response = (await depClientFor(c, token).get("os-beta-enrollment/tokens")) as {
     betaEnrollmentTokens?: { title?: unknown; os?: unknown; token?: unknown }[];
@@ -630,6 +650,7 @@ adminRoutes.get("/dep/:filename/os_beta_enrollment_tokens", async (c) => {
 });
 
 adminRoutes.get("/dep/:filename/account_driven_enrollment_profile", async (c) => {
+  await loginRequired(c);
   const token = await findDepTokenByFilename(c.get("db"), c.req.param("filename"));
   let profile: Record<string, unknown> = {};
   try {
@@ -655,6 +676,7 @@ adminRoutes.get("/dep/:filename/account_driven_enrollment_profile", async (c) =>
 });
 
 adminRoutes.post("/dep/:filename/account_driven_enrollment_profile", async (c) => {
+  await loginRequired(c);
   const token = await findDepTokenByFilename(c.get("db"), c.req.param("filename"));
   const body = await c.req.parseBody();
   const url = body.url;
@@ -729,15 +751,18 @@ async function renderDepDevices(
 }
 
 adminRoutes.get("/dep/:filename/devices", async (c) => {
+  await loginRequired(c);
   return renderDepDevices(c, c.req.param("filename"), undefined);
 });
 
 adminRoutes.get("/dep/:filename/devices/:serial_number", async (c) => {
+  await loginRequired(c);
   const serial = c.req.param("serial_number");
   return renderDepDevices(c, c.req.param("filename"), serial === "" ? undefined : serial);
 });
 
 adminRoutes.get("/dep/:filename/devices/:serial_number/remove_profile", async (c) => {
+  await loginRequired(c);
   const db = c.get("db");
   const filename = c.req.param("filename");
   const serial = c.req.param("serial_number").trim();
@@ -756,6 +781,7 @@ adminRoutes.get("/dep/:filename/devices/:serial_number/remove_profile", async (c
 });
 
 adminRoutes.get("/dep/:filename/profiles/:profile_uuid", async (c) => {
+  await loginRequired(c);
   const filename = c.req.param("filename");
   const profileUuid = c.req.param("profile_uuid");
   const token = await findDepTokenByFilename(c.get("db"), filename);
@@ -775,6 +801,7 @@ adminRoutes.get("/dep/:filename/profiles/:profile_uuid", async (c) => {
 });
 
 adminRoutes.post("/dep/:filename/profiles", async (c) => {
+  await loginRequired(c);
   const token = await findDepTokenByFilename(c.get("db"), c.req.param("filename"));
   const body = await c.req.parseBody();
   const payload = parseYaml(textField(body.payload) ?? "");
@@ -791,6 +818,7 @@ adminRoutes.post("/dep/:filename/profiles", async (c) => {
 });
 
 adminRoutes.post("/dep/:filename/profiles/:profile_uuid/assign", async (c) => {
+  await loginRequired(c);
   const token = await findDepTokenByFilename(c.get("db"), c.req.param("filename"));
   const body = await c.req.parseBody();
   const serialNumbers = parseSerialNumbers(textField(body.serial_numbers));
