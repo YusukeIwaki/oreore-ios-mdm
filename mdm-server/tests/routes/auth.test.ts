@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { truncateAll } from "../db/helpers";
 import { adminWorld, loginCookie } from "../helpers/admin";
+import { adminRoutes } from "../../src/routes/admin";
+import { adminDdmRoutes } from "../../src/routes/adminDdm";
 
 describe("admin auth", () => {
   let world: Awaited<ReturnType<typeof adminWorld>>;
@@ -54,7 +56,9 @@ describe("admin auth", () => {
   });
 
   test("login_required redirects to / and captures return_to", async () => {
-    const response = await world.app.request("/devices/abc?x=1");
+    const response = await world.app.request("/devices/abc?x=1", {
+      headers: { Accept: "text/html,application/xhtml+xml,*/*;q=0.8" },
+    });
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/");
     const cookie = sessionFrom(response);
@@ -81,6 +85,62 @@ describe("admin auth", () => {
     });
     expect(callback.status).toBe(302);
     expect(callback.headers.get("location")).toBe("/devices/abc?x=1");
+  });
+
+  test("every admin console route calls loginRequired", async () => {
+    const routes = [...adminRoutes.routes, ...adminDdmRoutes.routes];
+    expect(routes.length).toBeGreaterThan(0);
+    for (const route of routes) {
+      const path = route.path.replace(/:[a-z_]+/g, "x");
+      const response = await world.app.request(path, {
+        method: route.method,
+        headers: { Accept: "text/html" },
+      });
+      expect(`${route.method} ${route.path} -> ${response.status}`).toBe(
+        `${route.method} ${route.path} -> 302`,
+      );
+      expect(response.headers.get("location")).toBe("/");
+    }
+  });
+
+  test("unmatched paths such as /favicon.ico 404 without touching the session", async () => {
+    const response = await world.app.request("/favicon.ico", {
+      headers: { Accept: "image/avif,image/webp,image/*,*/*;q=0.8" },
+    });
+    expect(response.status).toBe(404);
+    expect(sessionFrom(response)).toBeNull();
+  });
+
+  test("sub-resource requests do not overwrite return_to", async () => {
+    const page = await world.app.request("/devices/abc", {
+      headers: { Accept: "text/html,*/*;q=0.8" },
+    });
+    const cookie = sessionFrom(page)!;
+
+    // A browser-initiated sub-resource fetch of a protected route (favicon,
+    // prefetch, image): still bounced to the login page, but it must not
+    // replace the page we came from.
+    const image = await world.app.request("/devices", {
+      headers: { Cookie: `mdm_session=${cookie}`, Accept: "image/avif,image/webp,*/*;q=0.8" },
+    });
+    expect(image.status).toBe(302);
+    expect(sessionFrom(image)).toBeNull();
+
+    const landing = await world.app.request("/", {
+      headers: { Cookie: `mdm_session=${cookie}` },
+    });
+    const csrf = csrfFrom(await landing.text());
+    const headers = {
+      Cookie: `mdm_session=${sessionFrom(landing) ?? cookie}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+    const callback = await world.app.request("/auth/developer/callback", {
+      method: "POST",
+      headers,
+      body: new URLSearchParams({ authenticity_token: csrf, email: "admin@example.com" }).toString(),
+    });
+    expect(callback.status).toBe(302);
+    expect(callback.headers.get("location")).toBe("/devices/abc");
   });
 
   test("POST /auth/developer rejects a bad authenticity token", async () => {
