@@ -78,7 +78,19 @@ import {
 /** Admin console: devices, RTS, VPP, IPA, DEP (DDM lives in `adminDdm.ts`). */
 export const adminRoutes = new Hono<AppEnv>();
 
-adminRoutes.use(loginRequired());
+// Scoped to the console prefixes so unmatched paths (e.g. /favicon.ico) fall through to 404.
+for (const prefix of [
+  "/devices/*",
+  "/byod/*",
+  "/commands/*",
+  "/dep/*",
+  "/ipa/*",
+  "/install_profile_payload",
+  "/rts/*",
+  "/vpp/*",
+]) {
+  adminRoutes.use(prefix, loginRequired());
+}
 
 // --- Devices ---
 

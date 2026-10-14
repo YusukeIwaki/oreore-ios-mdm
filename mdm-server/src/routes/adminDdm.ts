@@ -50,7 +50,7 @@ import {
 /** Admin console: declarative device management resources. */
 export const adminDdmRoutes = new Hono<AppEnv>();
 
-adminDdmRoutes.use(loginRequired());
+adminDdmRoutes.use("/ddm/*", loginRequired());
 
 async function groupSummaries(db: Database) {
   const groups = await db.select().from(schema.ddmDeviceGroups).orderBy(asc(schema.ddmDeviceGroups.id));
